@@ -1,3 +1,3 @@
-# mexjulia: Call julia from matlab
+# jlcall: Call Julia from MATLAB.
 
-A work in progress.
+Julia in a MEX function.
