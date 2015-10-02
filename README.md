@@ -12,7 +12,7 @@ The purpose of `jlcall` is to bring MATLAB and Julia together in a way that miti
 
 `jlcall` is not the only way to bridge MATLAB and Julia. [`MATLAB.jl`](https://github.com/JuliaLang/MATLAB.jl) is a Julia package that enables calling MATLAB from Julia through the [MATLAB Engine](http://www.mathworks.com/help/matlab/matlab_external/introducing-matlab-engine.html) interface. Indeed, `jlcall` itself takes advantage of the data marshaling functionality provided in `MATLAB.jl`. However, `MATLAB.jl` itself does not provide a means for MATLAB to call into Julia. `jlcall` complements `MATLAB.jl` in this manner.
 
-Nor is `jlcall` the first attempt to facilitate calling Julia from MATLAB. For instance, @timholy's [`julia-matlab`](https://github.com/timholy/julia-matlab) provides a means for calling Julia from MATLAB through a [ZeroMQ](http://zeromq.org/) connection and a clever data codec. For `julia-matlab` the communication is inter-process. As such, all data passed between the two involves copying. In contrast, with `jlcall`, MATLAB and Julia coexist in the same process, sharing a common address space. In this case, one can avoid data copying in certain cases when crossing the language border. The time and space savings can be significant when working with large chunks of memory, as is frequently done in technical computing.
+Nor is `jlcall` the first attempt to facilitate calling Julia from MATLAB. For instance,  [`julia-matlab`](https://github.com/timholy/julia-matlab) provides a means for calling Julia from MATLAB through a [ZeroMQ](http://zeromq.org/) connection and a clever data codec. For `julia-matlab` the communication is inter-process. As such, all data passed between the two involves copying. In contrast, with `jlcall`, MATLAB and Julia coexist in the same process, sharing a common address space. In this case, one can avoid data copying in certain cases when crossing the language border. The time and space savings can be significant when working with large chunks of memory, as is frequently done in technical computing.
 
 ## Getting started with `jlcall`
 
@@ -39,10 +39,10 @@ Now you are ready to set up `jlcall`. Clone it, if you haven't already. Then sta
 ```
 
 You will be prompted to select a `julia` executable. Once you have done so, `jlconfig` will:
-1. interrogate your system for settings,
-2. build the `jlcall` MEX function from source,
-3. write a `jlconfig.mat` file containing information necessary to properly initialize `jlcall`,
-4. add the `jlcall/m` directory to your MATLAB path.
+ 1. interrogate your system for settings,
+ 2. build the `jlcall` MEX function from source,
+ 3. write a `jlconfig.mat` file containing information necessary to properly initialize `jlcall`,
+ 4. add the `jlcall/m` directory to your MATLAB path.
 
 ### Simple uses of `jlcall`
 
