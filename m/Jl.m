@@ -33,13 +33,13 @@ classdef Jl
     function p = forward_slashify(p)
       p = strjoin(strsplit(p, filesep), '/');
     end
-    
-    function raw_eval(expr)
+
+    function eval_string(expr)
       Jl.mex(0, expr);
     end
 
     function include(fn)
-      Jl.raw_eval(['include("' Jl.forward_slashify(fn) '")']);
+      Jl.eval_string(['include("' Jl.forward_slashify(fn) '")']);
     end
 
     function v = call(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)

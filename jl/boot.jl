@@ -29,18 +29,17 @@ mex_write(fid, bytes) = call_matlab("fwrite", 0, Float64(fid), bytes)
 # Base.start_reading(pout)
 # Base.start_reading(perr)
 
-function mex_args(nrhs, prhs)
-  ptrs  = pointer_to_array(convert(Ptr{Ptr{Void}}, prhs), nrhs, false)
-  [ jvariable(MxArray(mx, false)) for mx in ptrs ]
+function mex_args(ins)
+  [ jvariable(MxArray(mx, false)) for mx in ins ]
 end
 
-function mex_return(nlhs, plhs, vs...)
-  @assert nlhs == length(vs)
-  ptrs = pointer_to_array(convert(Ptr{Ptr{Void}}, plhs), nlhs, false)
-  for i in 1:nlhs
+function mex_return(outs, vs...)
+  nouts = length(outs)
+  @assert nouts == length(vs)
+  for i in 1:nouts
     mx = mxarray(vs[i])
     mx.own = false
-    ptrs[i] = mx.ptr
+    outs[i] = mx.ptr
   end
 end
 
@@ -52,21 +51,21 @@ function mex_showerror(e)
 end
 
 # a fancier eval
-function mex_eval(nlhs::Int32, plhs::Ptr{Void}, nrhs::Int32, prhs::Ptr{Void})
+function mex_eval(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
   try
-    @assert nlhs == nrhs
-    mex_return(nlhs, plhs, [ eval(parse(e)) for e in mex_args(nrhs, prhs) ]...)
+    @assert length(outs) == length(ins)
+    mex_return(outs, [ eval(parse(e)) for e in mex_args(ins) ]...)
   catch e
     mex_showerror(e)
   end
 end
 
 # call an arbitrary julia function (or other callable)
-function mex_call(nlhs::Int32, plhs::Ptr{Void}, nrhs::Int32, prhs::Ptr{Void})
+function mex_call(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
   try
-    @assert nlhs == 1 && nrhs >= 1
-    args = mex_args(nrhs, prhs)
-    mex_return(1, plhs, eval(parse(args[1]))(args[2:end]...))
+    @assert length(outs) == 1 && length(ins) >= 1
+    args = mex_args(ins)
+    mex_return(outs, eval(parse(args[1]))(args[2:end]...))
   catch e
     mex_showerror(e)
   end

@@ -1,8 +1,6 @@
-function double_it(nlhs::Int32, plhs::Ptr{Void}, nrhs::Int32, prhs::Ptr{Void})
+function double_it(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
   try
-    @assert nlhs <= 1 && nrhs == 1
-    args = mex_args(nrhs, prhs)
-    mex_return(1, plhs, 2*args[1])
+    mex_return(outs, [ 2*v for v in mex_args(ins) ]...)
   catch e
     mex_showerror(e)
   end

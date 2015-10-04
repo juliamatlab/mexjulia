@@ -4,7 +4,7 @@
 
 ## Why `jlcall`?
 
-MATLAB is a venerable tool for technical computing with a well-polished interface, a large number of useful toolboxes, and a significant user base who have established efficient workflows around it. However, MATLAB's language has limitations that lead users to turn to writing MEX extensions in FORTRAN, C or C++ when efficient implementations are infeasible in MATLAB itself.
+MATLAB is a tool for technical computing with a well-polished interface, many useful toolboxes, and a large number of users who have established efficient workflows around it. However, MATLAB's language has limitations that lead users to turn to writing MEX extensions in FORTRAN, C or C++ when efficient implementations are infeasible in MATLAB itself.
 
 Julia is a relatively new language for technical computing. Its designers have striven to bring together into one place the most important positive attributes of a variety of languages that one might find being used in today's scientific computing projects, including: a familiar, unintrusive syntax and a large toolbox of scientific software, like MATLAB; convenient system-level "glue" capabilities, like Python; the possibility of achieving excellent runtime performance, like FORTRAN or C. Julia's present is already formidable, and its future is even brighter, but it still lacks an interface as clean and feature-rich as MATLAB's.
 
@@ -40,17 +40,18 @@ Now you are ready to set up `jlcall`. Clone it, if you haven't already. Then sta
 
 You will be prompted to select a `julia` executable. Once you have done so, `jlconfig` will:
  1. interrogate your system for settings,
- 2. build the `jlcall` MEX function from source,
- 3. write a `jlconfig.mat` file containing information necessary to properly initialize `jlcall`,
+ 2. write a `jlconfig.mat` file containing information necessary to properly initialize `jlcall`,
+ 3. build the `jlcall` MEX function from source,
  4. add the `jlcall/m` directory to your MATLAB path.
+
 
 ### Simple uses of `jlcall`
 
-The `jlcall` project provides `Jl.m`, which contains a high-level interface to the `jlcall` MEX function. Aside from hiding the gory details needed to properly initialize the Julia runtime, `Jl.m` provides two generally useful member functions.
+The `jlcall` project provides `Jl.m`, which contains a high-level interface to the `jlcall` MEX function. Aside from hiding the details of Julia runtime initialization, `Jl.m` provides some useful member functions.
 
 #### `Jl.eval`
 
-Using `Jl.eval`, one can evaluate arbitrary Julia expressions captured in MATLAB strings:
+Using `Jl.eval`, one can evaluate Julia expressions captured in MATLAB strings:
 
 ```
 >> Jl.eval('2+2')
@@ -72,15 +73,57 @@ ans =
      3628800
 ```
 
-## `jlcall` from the ground up
+#### `Jl.include`
 
-A MATLAB MEX function has a fixed signature. It is a `void` function taking four arguments, which are:
- - `int nlhs`, the number of outputs specified in the MATLAB invocation;
- - `mxArrray **plhs`, which points to an array of `min(1,nlhs)` addresses where output addresses are expected to be stored;
- - `int nrhs`, the number of arguments given in the invocation of this MEX function;
- - `mxArray **prhs`, a pointer to an array of `nrhs` addresses which contain the addresses of the values passed in to this MEX function.
+One can load new Julia code by calling `Jl.include`. Suppose the file `double_it.jl` contains:
 
-The principal way that the `jlcall` MEX function works is, given its first argument is a string, to call the Julia function with the given name, passing in the the (remaining) MEX function arguments. Thus, `jlcall` call allows any Julia function accepting four arguments of type `Int32`, `Ptr{Void}`, `Int32`, and `Ptr{Void}`, respectively, and which interprets the arguments appropriately, to be invoked from MATLAB. In particular, the functionality underlying `Jl.eval` and `Jl.call` is provided by two such Julia functions.
+```
+function double_it(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
+  try
+    mex_return(outs, [ 2*v for v in mex_args(ins) ]...)
+  catch e
+    mex_showerror(e)
+  end
+end
+```
+
+ This MEX-like function can be loaded into the Julia runtime as follows:
+
+```
+>> Jl.include('double_it.jl')
+```
+
+#### `Jl.mex`
+
+MEX-like functions can be invoked with `Jl.mex`. The first argument is a string naming the function to be called. Remaining arguments are passed to that function. For instance, now that it is loaded, we can invoke `double_it`:
+
+```
+>> a = rand(5,5)
+
+a =
+
+    0.7577    0.7060    0.8235    0.4387    0.4898
+    0.7431    0.0318    0.6948    0.3816    0.4456
+    0.3922    0.2769    0.3171    0.7655    0.6463
+    0.6555    0.0462    0.9502    0.7952    0.7094
+    0.1712    0.0971    0.0344    0.1869    0.7547
+
+>> Jl.mex('double_it', a)
+
+ans =
+
+    1.5155    1.4121    1.6469    0.8775    0.9795
+    1.4863    0.0637    1.3897    0.7631    0.8912
+    0.7845    0.5538    0.6342    1.5310    1.2926
+    1.3110    0.0923    1.9004    1.5904    1.4187
+    0.3424    0.1943    0.0689    0.3737    1.5094
+```
+
+It is worth noting that `Jl.mex` is a constant of the `Jl` class that is equal to `@jlcall`, a handle to the `jlcall` MEX function. We recommend always referring to `Jl.mex` instead of `jlcall`, as the initialization of the `Jl.mex` constant forces the initialization of the Julia runtime. If one were to use `jlcall` directly, one would have to separately ensure initialization occurred.
+
+## Under the hood: the `jlcall` MEX function
+
+The principal way that the `jlcall` MEX function works is, given its first argument is a string, to call the Julia function with the given name, passing in the the (remaining) MEX function arguments, packaged as two values of type `Vector{Ptr{Void}}`. The first argument is the array of outputs, while the second is the array of inputs. Thus, `jlcall` call allows any Julia function with this MEX-like signature to be invoked from MATLAB. In particular, the functionality underlying `Jl.eval` and `Jl.call` is provided by two such Julia functions.
 
 Of course, there are no functions in Julia's `Base` library that match the above criteria, so one also needs, at a minimum, the ability to load code into the Julia runtime. Further, provision must be made for initializing the Julia runtime in the first place. To accomodate, `jlcall` can also be called in other ways. Invoking `jlcall`:
  - with no arguments returns a logical representing whether the Julia runtime has been initialized;
@@ -91,7 +134,7 @@ The `jlcall` MEX interface is sparse by design. It is meant to provide the minim
 
 ## Limitations and caveats
 
-- Arguments passed in to `jlcall` from MATLAB must not be modified on the Julia side. If it happens, expect MATLAB to crash. This is a requirement of the MEX interface, and is not specific to `jlcall`.
+- The input arguments passed in to `jlcall` from MATLAB must not be modified on the Julia side. If it happens, expect MATLAB to crash. This is a requirement of the MEX interface, and is not specific to `jlcall`.
 
 - Currently, Julia's `STDOUT` and `STDERR` are not redirected to the MATLAB GUI console. However, it should still be visible in the console from which MATLAB was started. For Windows users, starting MATLAB from the Windows terminal (`cmd`) is insufficient to see output, however, launching MATLAB from the `cygwin` or `msys` prompt should work.
 
