@@ -43,14 +43,6 @@ julia_image = chomp(julia_image);
 assert(exist(julia_image, 'file') == 2);
 fprintf('The Julia image is %s\n', julia_image);
 
-% write the config file
-this_dir = directory(mfilename('fullpath'));
-conf = matfile([this_dir filesep 'jlconfig.mat']);
-conf.Properties.Writable = true;
-conf.julia_bin_dir = julia_bin_dir;
-conf.julia_home = julia_home;
-conf.julia_image = julia_image;
-
 % get include dir
 [~, julia_include_dir] = system(sprintf(cmd, exe, '"joinpath(match(r\"(.*)(bin)\",JULIA_HOME).captures[1],\"include\",\"julia\")"'));
 julia_include_dir = chomp(julia_include_dir);
@@ -69,14 +61,21 @@ else
 end
 assert(exist(julia_lib_dir, 'dir') == 7);
 
-% build the mex file
-julia_src = [this_dir filesep '..' filesep 'src' filesep 'jlcall.cpp'];
-mex_cmd = 'mex -v -largeArrayDims %s -output %s -outdir ''%s'' -I''%s'' -L''%s'' ''%s'' %s';
-eval(sprintf(mex_cmd, '-O', 'jlcall', this_dir, julia_include_dir, julia_lib_dir, julia_src, lib_opt));
+% write the config file
+this_dir = directory(mfilename('fullpath'));
+conf = matfile([this_dir filesep 'jlconfig.mat']);
+conf.Properties.Writable = true;
+conf.julia_bin_dir = julia_bin_dir;
+conf.julia_home = julia_home;
+conf.julia_image = julia_image;
+conf.julia_include_dir = julia_include_dir;
+conf.julia_lib_dir = julia_lib_dir;
+conf.lib_opt = lib_opt;
 
-% add this directory to the search path, if necessary
+% build the mex function
+jlbuild;
 
-% check if it is on the path
+% check if this directory is on the search path
 path_dirs = strsplit(path, pathsep);
 if ispc
   on_path = any(strcmpi(this_dir, path_dirs));
@@ -86,11 +85,11 @@ end
 
 % if not, add it and save
 if ~on_path
-  fprintf('"%s" is not on the MATLAB path. Adding it and saving...\n', this_dir);
+  fprintf('%s is not on the MATLAB path. Adding it and saving...\n', this_dir);
   path(this_dir, path);
   savepath;
 else
-  fprintf('"%s" is already on the MATLAB path.\n', this_dir);
+  fprintf('%s is already on the MATLAB path.\n', this_dir);
 end
 
 fprintf('Configuration complete.\n');
