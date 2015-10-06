@@ -31,7 +31,11 @@ assert(exist(julia_bin_dir, 'dir') == 7);
 fprintf('The directory of the Julia executable is %s\n', julia_bin_dir);
 
 % get julia home
-cmd = '%s -e println(%s)';
+if ispc
+  cmd = '%s -e println(%s)';
+else
+  cmd = '%s -e ''println(%s)''';
+end
 [~, julia_home] = system(sprintf(cmd, exe, 'JULIA_HOME'));
 julia_home = chomp(julia_home);
 assert(exist(julia_home, 'dir') == 7);
@@ -44,7 +48,12 @@ assert(exist(julia_image, 'file') == 2);
 fprintf('The Julia image is %s\n', julia_image);
 
 % get include dir
-[~, julia_include_dir] = system(sprintf(cmd, exe, '"joinpath(match(r\"(.*)(bin)\",JULIA_HOME).captures[1],\"include\",\"julia\")"'));
+if ispc
+  inc_dir_str = '"joinpath(match(r\"(.*)(bin)\",JULIA_HOME).captures[1],\"include\",\"julia\")"';
+else
+  inc_dir_str = 'joinpath(match(r"(.*)(bin)",JULIA_HOME).captures[1], "include", "julia")';
+end
+[~, julia_include_dir] = system(sprintf(cmd, exe, inc_dir_str));
 julia_include_dir = chomp(julia_include_dir);
 assert(exist(julia_include_dir, 'dir') == 7);
 assert(exist([julia_include_dir filesep 'julia.h'], 'file') == 2);
@@ -56,9 +65,10 @@ if ispc
   julia_lib_dir = strjoin(bits(1:end-2), filesep);
   lib_opt = 'libjulia.dll.a';
 else
-  [~, julia_lib_dir] = system(sprintf(cmd, exe, 'abspath(dirname(Libdl.dlpath(\"libjulia\")))'));
+  [~, julia_lib_dir] = system(sprintf(cmd, exe, 'abspath(dirname(Libdl.dlpath("libjulia")))'));
   lib_opt = '-ljulia';
 end
+julia_lib_dir = chomp(julia_lib_dir);
 assert(exist(julia_lib_dir, 'dir') == 7);
 
 % write the config file
