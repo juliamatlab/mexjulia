@@ -56,6 +56,7 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[]) {
 
         char *home = nr >= 2 && mxIsChar(pr[1]) ? mxArrayToString(pr[1]) : NULL;
         char *image = nr >= 3 && mxIsChar(pr[2]) ? mxArrayToString(pr[2]) : NULL;
+        jl_options.handle_signals = JL_OPTIONS_HANDLE_SIGNALS_OFF;
         jl_init_with_image(home, image);
         mxFree(home);
         mxFree(image);
