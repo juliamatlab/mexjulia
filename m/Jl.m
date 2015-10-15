@@ -15,19 +15,9 @@ classdef Jl
       bl = Jl.mex();
     end
 
-    function [v1, v2, v3, v4, v5] = eval(e1, e2, e3, e4, e5)
-      switch nargin
-        case 1
-          v1 = Jl.mex('mex_eval', e1);
-        case 2
-          [v1, v2] = Jl.mex('mex_eval', e1, e2);
-        case 3
-          [v1, v2, v3] = Jl.mex('mex_eval', e1, e2, e3);
-        case 4
-          [v1, v2, v3, v4] = Jl.mex('mex_eval', e1, e2, e3, e4);
-        case 5
-          [v1, v2, v3, v4, v5] = Jl.mex('mex_eval', e1, e2, e3, e4, e5);
-      end
+    function varargout = eval(varargin)
+        varargout = cell(1, length(varargin));
+        [varargout{:}] = Jl.mex('mex_eval', varargin{:});
     end
 
     function p = forward_slashify(p)
@@ -42,31 +32,8 @@ classdef Jl
       Jl.eval_string(['include("' Jl.forward_slashify(fn) '")']);
     end
 
-    function v = call(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)
-      switch nargin
-        case 1
-          v = Jl.mex('mex_call', fn);
-        case 2
-          v = Jl.mex('mex_call', fn, a1);
-        case 3
-          v = Jl.mex('mex_call', fn, a1, a2);
-        case 4
-          v = Jl.mex('mex_call', fn, a1, a2, a3);
-        case 5
-          v = Jl.mex('mex_call', fn, a1, a2, a3, a4);
-        case 6
-          v = Jl.mex('mex_call', fn, a1, a2, a3, a4, a5);
-        case 7
-          v = Jl.mex('mex_call', fn, a1, a2, a3, a4, a5, a6);
-        case 8
-          v = Jl.mex('mex_call', fn, a1, a2, a3, a4, a5, a6, a7);
-        case 9
-          v = Jl.mex('mex_call', fn, a1, a2, a3, a4, a5, a6, a7, a8);
-        case 10
-          v = Jl.mex('mex_call', fn, a1, a2, a3, a4, a5, a6, a7, a8, a9);
-        case 11
-          v = Jl.mex('mex_call', fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
-      end
+    function v = call(fn, varargin)
+      v = Jl.mex('mex_call', fn, varargin{:});
     end
   end
 
