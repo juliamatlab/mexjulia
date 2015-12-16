@@ -21,7 +21,8 @@ classdef Jl
     end
 
     function p = forward_slashify(p)
-      p = strjoin(strsplit(p, filesep), '/');
+      p = regexp(p, filesep, 'split');
+      p = [sprintf('%s/', p{1:end-1}) p{end}];
     end
 
     function eval_string(expr)
@@ -61,8 +62,8 @@ classdef Jl
     end
 
     function conf = get_config_file()
-      bits = strsplit(mfilename('fullpath'), filesep);
-      conf = strjoin([bits(1:end-1), 'jlconfig.mat'], filesep);
+      mfiledir = fileparts(mfilename('fullpath'));
+      conf = [mfiledir filesep 'jlconfig.mat'];
 
       % run jlconfig if the file doesn't exist
       if exist(conf, 'file') ~= 2
@@ -72,8 +73,8 @@ classdef Jl
     end
 
     function boot = get_boot_file()
-      bits = strsplit(mfilename('fullpath'), filesep);
-      boot = strjoin([bits(1:end-2), 'jl', 'boot.jl'], filesep);
+      mfiledir = fileparts(mfilename('fullpath'));
+      boot = fullfile(mfiledir, '..', 'jl', 'boot.jl');
     end
 
     function v = read_config(nm)
