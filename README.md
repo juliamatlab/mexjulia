@@ -18,7 +18,7 @@ Nor is `jlcall` the first attempt to facilitate calling Julia from MATLAB. For i
 
 ### Prerequisites
 
-It goes without saying that using `jlcall` requires having both MATLAB and Julia (>=v.0.4) installed on your system. Additionally, to build the MEX function from source, you need a C++ compiler configured to work with MATLAB's `mex` function. You can ensure this is done by executing:
+It goes without saying that using `jlcall` requires having both MATLAB (>=R2008a) and Julia (>=v.0.4) installed on your system. Additionally, to build the MEX function from source, you need a C++ compiler configured to work with MATLAB's `mex` function. You can ensure this is done by executing:
 
 ```
 >> mex -setup C++

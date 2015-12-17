@@ -3,12 +3,11 @@ function jlconfig(exe)
 if nargin < 1
   % try to guess the path of the julia executable
   if ispc
-    [~, o] = system('where julia');
+    [~, exe] = system('where julia');
   else
-    [~, o] = system('which julia');
+    [~, exe] = system('which julia');
   end
-  exes = strsplit(o, {'\n','\r'}, 'CollapseDelimiters', true);
-  exe = exes{1};
+  exe = strtrim(exe);
   if exist(exe, 'file') == 0
     exe = 'julia';
   end
@@ -61,8 +60,7 @@ fprintf('The Julia include directory is %s\n', julia_include_dir);
 
 % get lib dir, opts
 if ispc
-  bits = strsplit(julia_image, filesep);
-  julia_lib_dir = strjoin(bits(1:end-2), filesep);
+  julia_lib_dir = [directory(julia_image) filesep '..'];
   lib_opt = 'libjulia.dll.a';
 else
   [~, julia_lib_dir] = system(sprintf(cmd, exe, 'abspath(dirname(Libdl.dlpath("libjulia")))'));
@@ -86,7 +84,7 @@ conf.lib_opt = lib_opt;
 jlbuild;
 
 % check if this directory is on the search path
-path_dirs = strsplit(path, pathsep);
+path_dirs = regexp(path, pathsep, 'split');
 if ispc
   on_path = any(strcmpi(this_dir, path_dirs));
 else
@@ -110,8 +108,7 @@ end
 
 % directory of path
 function d = directory(p)
-  bits = strsplit(p, filesep);
-  d = strjoin(bits(1:end-1), filesep);
+  d = fileparts(p);
 end
 
 % remove leading, trailing whitespace
@@ -121,5 +118,6 @@ function str = chomp(str)
 end
 
 function str = np(str)
-  str = strjoin(strsplit(str, filesep), '/');
+  parts = regexp(str, filesep, 'split');
+  str = [sprintf('%s/', parts{1:end-1}) parts{end}];
 end
