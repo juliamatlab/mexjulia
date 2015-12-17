@@ -18,4 +18,9 @@ julia_src = [this_dir filesep '..' filesep 'src' filesep 'jlcall.cpp'];
 mex_cmd = 'mex %s -largeArrayDims -O -output jlcall -outdir ''%s'' -I''%s'' -L''%s'' ''%s'' %s';
 eval(sprintf(mex_cmd, vq, this_dir, conf.julia_include_dir, conf.julia_lib_dir, julia_src, conf.lib_opt));
 
+% Add rpath to the binary
+if ismac
+  system(sprintf('install_name_tool -add_rpath ''%s'' ''%s''', conf.julia_lib_dir, fullfile(this_dir, ['jlcall.' mexext])));
+end
+
 end
