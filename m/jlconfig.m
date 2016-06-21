@@ -31,7 +31,7 @@ fprintf('The directory of the Julia executable is %s\n', julia_bin_dir);
 
 % get julia home
 if ispc
-  cmd = '%s -e println(%s)';
+  cmd = '"%s" -e println(%s)';
 else
   cmd = '%s -e ''println(%s)''';
 end
