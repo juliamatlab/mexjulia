@@ -54,7 +54,7 @@ else
 end
 [~, julia_include_dir] = system(sprintf(cmd, exe, inc_dir_str));
 julia_include_dir = chomp(julia_include_dir);
-assert(exist(julia_include_dir, 'dir') == 7);
+assert(exist(julia_include_dir, 'dir') == 7,'You must have the Julia development headers installed');
 assert(exist([julia_include_dir filesep 'julia.h'], 'file') == 2);
 fprintf('The Julia include directory is %s\n', julia_include_dir);
 
