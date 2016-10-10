@@ -1,3 +1,4 @@
 *.mexw64
 *.o
-m/jlconfig.mat
+*.asv
+pathdef.m

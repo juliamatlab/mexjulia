@@ -5,15 +5,16 @@ void jl_check(bool bl) {
   const size_t len = 1024;
   static char msg[len];
 
-  if (bl) return;
-
-  jl_value_t *e = jl_exception_occurred();
-  if(e) {
-    snprintf(msg, len, "Unhandled Julia exception: %s", jl_typeof_str(e));
-    jlbacktrace();
-    jl_exception_clear();
-    mexErrMsgTxt(msg);
+  if (!bl)
+  {
+      jl_value_t *e = jl_exception_occurred();
+      if(e)
+      {
+          snprintf(msg, len, "Unhandled Julia exception: %s", jl_typeof_str(e));
+          mexErrMsgTxt(msg);
+      }
   }
+  jl_exception_clear();
 }
 
 void jl_atexit_hook_0() {
@@ -53,14 +54,8 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[]) {
     } else{ // ...because the empty name means initialization
 
       if (!jl_is_initialized()) {
-
-        char *home = nr >= 2 && mxIsChar(pr[1]) ? mxArrayToString(pr[1]) : NULL;
-        char *image = nr >= 3 && mxIsChar(pr[2]) ? mxArrayToString(pr[2]) : NULL;
         jl_options.handle_signals = JL_OPTIONS_HANDLE_SIGNALS_OFF;
-        jl_init_with_image(home, image);
-        mxFree(home);
-        mxFree(image);
-
+        jl_init(JULIA_INIT_DIR);
         mexAtExit(jl_atexit_hook_0);
       }
 
