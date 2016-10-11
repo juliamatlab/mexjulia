@@ -109,6 +109,9 @@ classdef Jl
       % make sure the MATLAB.jl package is installed.
       [~, pkg_add] = system(sprintf('%s -e "Pkg.add(\\"MATLAB\\")"', exe));
       fprintf('Ensuring the MATLAB package is installed...\n%s', pkg_add);
+      [~, pkg_co] = system(sprintf('%s -e "Pkg.checkout(\\"MATLAB\\")"', exe));
+      fprintf('Ensuring the MATLAB package is on master...\n%s', pkg_co);
+     
 
       % check if this directory is on the search path
       path_dirs = regexp(path, pathsep, 'split');
