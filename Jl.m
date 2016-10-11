@@ -50,9 +50,7 @@ classdef Jl
       setenv('MATLAB_HOME', Jl.matlab_dir);
 
       % load the boot file
-      boot_file = Jl.forward_slashify(fullfile(Jl.this_dir, 'jl', 'boot.jl'));
-      assert(exist(boot_file, 'file') == 2);
-      mexjulia(0, ['include("' boot_file '")']);
+      mexjulia(0, ['include("' Jl.boot_file '")']);
     end
     
     % (re)build the mexjulia MEX function and do some other checks
@@ -111,7 +109,12 @@ classdef Jl
       fprintf('Ensuring the MATLAB package is installed...\n%s', pkg_add);
       [~, pkg_co] = system(sprintf('%s -e "Pkg.checkout(\\"MATLAB\\")"', exe));
       fprintf('Ensuring the MATLAB package is on master...\n%s', pkg_co);
-     
+
+      % check for any issues loading the boot file
+      [exit_code, boot_ld] = system(sprintf('%s -e "include(\\"%s\\")"', exe, Jl.boot_file));
+      fprintf('Is the boot file loadable without error?\n%s', boot_ld);
+      assert(exit_code == 0);
+      fprintf('Yes.\n');
 
       % check if this directory is on the search path
       path_dirs = regexp(path, pathsep, 'split');
@@ -122,7 +125,7 @@ classdef Jl
       end
       
       % if not, add it and save
-      fprintf('Is %s on the MATLAB path? ', Jl.this_dir);
+      fprintf('Is %s on the MATLAB path?\n', Jl.this_dir);
       if ~on_path
         fprintf('No. Adding it and saving...\n');
         path(Jl.this_dir, path);
@@ -140,6 +143,10 @@ classdef Jl
     % path to the root of this version of matlab
     function mh = matlab_dir()
       mh = fileparts(fileparts(fileparts(fileparts(which('path')))));
+    end
+
+    function bf = boot_file()
+      bf = Jl.forward_slashify(fullfile(Jl.this_dir, 'jl', 'boot.jl'));
     end
 
     % replace backslashes with forward slashes on pcs (id fn otherwise)
