@@ -1,4 +1,5 @@
 using Optim
+using Calculus
 
 function mex_levenberg_marquardt(args::Vector{MxArray})
 
@@ -11,7 +12,7 @@ function mex_levenberg_marquardt(args::Vector{MxArray})
     wrap(mx, x) = jvariable(mx(MxArray[mxarray(x)])[1])
 
     f = x -> wrap(args[1], x)
-    jac = x -> wrap(args[2], x)
-    x0 = jvariable(args[3])
+    x0 = jvariable(args[2])
+    jac = jacobian(f)
     [Optim.levenberg_marquardt(f, jac, x0)]
 end
