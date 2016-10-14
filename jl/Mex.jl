@@ -79,7 +79,7 @@ end
 
 # redirect stdout/stderr to MATLAB console
 function fwrite(fid::Float64, str::String)
-    call_matlab("fwrite", MxArray[mxarray(fid), mxarray(str)], 0)
+    call_matlab("fwrite", MxArray[mxarray(fid), mxarray(str), mxarray("char")], 0)
     nothing
 end
 

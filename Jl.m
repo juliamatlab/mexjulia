@@ -26,7 +26,15 @@ classdef Jl
     function include(fn)
       Jl.eval(['include("' Jl.forward_slashify(fn) '")']);
     end
-
+    
+    function prompt()
+      while true
+        expr = input('julia> ', 's');
+        if startsWith(expr,';'), break, end
+        Jl.eval(expr)  
+      end
+    end
+    
   end
 
   methods (Static)
@@ -34,28 +42,40 @@ classdef Jl
     % Check that the Julia runtime is initialized (and initialize it, if
     % necessary).
     function check_init()
-      
       try
         % fast path
-        if mexjulia, return, end;
+        if mexjulia, return, end
       catch
-        warning('It appears the mexjulia MEX function is missing. Attempting to build...\n');
-        Jl.build;
-      end
+        
+        % check that the mexfunction exists
+        if isempty(which('mexjulia'))
+          warning('It appears the mexjulia MEX function is missing. Attempting to build...\n');
+          Jl.build;
+        end
+
+        if ispc
+          % This is a hack for windows which lets the mex function
+          % find the julia dlls during initialization without requiring that
+          % julia be on the path. Shouldn't be necessary on platforms
+          % that have rpath.
+          old_dir = pwd;
+          cd(Jl.julia_home);
+        end
+     
+        % basic runtime initialization
+        mexjulia('', Jl.julia_home, Jl.julia_sys_image);
+
+        % Make sure MATLAB_HOME points to _this_ version of matlab.
+        setenv('MATLAB_HOME', Jl.matlab_dir);
+
+        % load the boot file
+        mexjulia(0, ['include("' Jl.boot_file '")']);
       
-      % basic runtime initialization
-      mexjulia('');
-
-      % Make sure MATLAB_HOME points to _this_ version of matlab.
-      setenv('MATLAB_HOME', Jl.matlab_dir);
-
-      % load the boot file
-      mexjulia(0, ['include("' Jl.boot_file '")']);
+        if ispc, cd(old_dir), end
+      end    
     end
     
-    % (re)build the mexjulia MEX function and do some other checks
-    function build(exe)
-      
+    function config(exe)
       % get the path to the julia to build against
       if nargin < 1
         % try to guess the path of the julia executable
@@ -81,13 +101,31 @@ classdef Jl
       assert(exist(exe, 'file') == 2);
       fprintf('The path of the Julia executable is %s\n', exe);
       
+      % get the path of the image file
+      cmd = 'println(unsafe_string(Base.JLOptions().image_file))';
+      [~, img] = system(sprintf('"%s" -e "%s"', exe, cmd));
+      img = Jl.chomp(img);
+      assert(exist(img, 'file') == 2);
+      fprintf('The path of the system image is %s\n', img);
+      
+      % save these to a mat file
+      save jlconfig exe img;
+      
+      % rebuild the mex function, given the new configuration
+      Jl.build;
+    end
+    
+    % (re)build the mexjulia MEX function and do some other checks
+    function build()
+      
       % get the config script
-      jl_root = fileparts(fileparts(exe));
+      jl_root = fileparts(Jl.julia_home);
       cfg = fullfile(jl_root, 'share', 'julia', 'julia-config.jl');
       assert(exist(cfg, 'file') == 2);
       fprintf('The path of the Julia configuration script is %s\n', cfg);
       
       % get the build options
+      exe = Jl.julia_bin;
       [~, cflags] = system(sprintf('"%s" "%s" %s', exe, cfg, '--cflags'));
       cflags = Jl.chomp(cflags);
       [~, ldflags] = system(sprintf('"%s" "%s" %s', exe, cfg, '--ldflags'));
@@ -101,8 +139,8 @@ classdef Jl
 
       % build the mex file
       src = fullfile(Jl.this_dir, 'mexjulia.cpp');
-      mex_cmd = 'mex -largeArrayDims -O %s %s %s %s';
-      eval(sprintf(mex_cmd, cflags, ldflags, src, ldlibs));
+      mex_cmd = 'mex -largeArrayDims -O -outdir "%s" %s %s %s %s';
+      eval(sprintf(mex_cmd, Jl.this_dir, cflags, ldflags, src, ldlibs));
       
       % make sure the MATLAB.jl package is installed.
       [~, pkg_add] = system(sprintf('%s -e "Pkg.add(\\"MATLAB\\")"', exe));
@@ -147,6 +185,28 @@ classdef Jl
 
     function bf = boot_file()
       bf = Jl.forward_slashify(fullfile(Jl.this_dir, 'jl', 'boot.jl'));
+    end
+    
+    function val = get_jlconfig(key)
+      try
+        load('jlconfig', key);
+        val = eval(key);
+      catch
+        warning('It appears the jlconfig.mat file is missing. Attempting to configure...\n');
+        Jl.config;
+      end
+    end
+    
+    function exe = julia_bin()
+      exe = Jl.get_jlconfig('exe');
+    end
+    
+    function home = julia_home()
+      home = fileparts(Jl.julia_bin);
+    end
+    
+    function img = julia_sys_image()
+      img = Jl.get_jlconfig('img');
     end
 
     % replace backslashes with forward slashes on pcs (id fn otherwise)
