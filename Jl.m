@@ -44,13 +44,16 @@ classdef Jl
     function check_init()
       try
         % fast path
-        if mexjulia, return, end
+        if ~mexjulia
+          % we want the catch block if the mexjulia call returns false or
+          % errors out
+          error('mexjulia not initialized');
+        end
       catch
         
         % check that the mexfunction exists
         if isempty(which('mexjulia'))
-          warning('It appears the mexjulia MEX function is missing. Attempting to build...\n');
-          Jl.build;
+          warning('It appears the mexjulia MEX function is missing. Consider running "Jl.build".\n');
         end
 
         if ispc
@@ -192,8 +195,7 @@ classdef Jl
         load('jlconfig', key);
         val = eval(key);
       catch
-        warning('It appears the jlconfig.mat file is missing. Attempting to configure...\n');
-        Jl.config;
+        warning('It appears the jlconfig.mat file is missing. Consider running "Jl.config".\n');
       end
     end
     
