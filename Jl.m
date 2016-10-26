@@ -6,7 +6,7 @@ classdef Jl
     % call a MEX-like Julia function
     function varargout = mex(nout, varargin)
         varargout = cell(nout, 1);
-        Jl.check_init;
+        Jl.check_initialized;
         [varargout{:}] = mexjulia('jl_mex', varargin{:});
     end
 
@@ -39,21 +39,21 @@ classdef Jl
 
   methods (Static)
     
+    function bl = is_initialized()
+      bl = false;
+      try
+        bl = mexjulia;
+      end
+    end
+    
     % Check that the Julia runtime is initialized (and initialize it, if
     % necessary).
-    function check_init()
-      try
-        % fast path
-        if ~mexjulia
-          % we want the catch block if the mexjulia call returns false or
-          % errors out
-          error('mexjulia not initialized');
-        end
-      catch
+    function check_initialized()
+      if ~Jl.is_initialized
         
         % check that the mexfunction exists
         if isempty(which('mexjulia'))
-          warning('It appears the mexjulia MEX function is missing. Consider running "Jl.build".\n');
+          error('It appears the mexjulia MEX function is missing. Consider running "Jl.build".\n');
         end
 
         if ispc
@@ -145,17 +145,11 @@ classdef Jl
       mex_cmd = 'mex -largeArrayDims -O -outdir "%s" %s %s %s %s';
       eval(sprintf(mex_cmd, Jl.this_dir, cflags, ldflags, src, ldlibs));
       
-      % make sure the MATLAB.jl package is installed.
-      [~, pkg_add] = system(sprintf('%s -e "Pkg.add(\\"MATLAB\\")"', exe));
-      fprintf('Ensuring the MATLAB package is installed...\n%s', pkg_add);
-      [~, pkg_co] = system(sprintf('%s -e "Pkg.checkout(\\"MATLAB\\")"', exe));
-      fprintf('Ensuring the MATLAB package is on master...\n%s', pkg_co);
-
-      % check for any issues loading the boot file
-      [exit_code, boot_ld] = system(sprintf('%s -e "include(\\"%s\\")"', exe, Jl.boot_file));
-      fprintf('Is the boot file loadable without error?\n%s', boot_ld);
-      assert(exit_code == 0);
-      fprintf('Yes.\n');
+%       % check for any issues loading the boot file
+%       [exit_code, boot_ld] = system(sprintf('%s -e "include(\\"%s\\")"', exe, Jl.boot_file));
+%       fprintf('Is the boot file loadable without error?\n%s', boot_ld);
+%       assert(exit_code == 0);
+%       fprintf('Yes.\n');
 
       % check if this directory is on the search path
       path_dirs = regexp(path, pathsep, 'split');
@@ -195,7 +189,7 @@ classdef Jl
         load('jlconfig', key);
         val = eval(key);
       catch
-        warning('It appears the jlconfig.mat file is missing. Consider running "Jl.config".\n');
+        error('It appears the jlconfig.mat file is missing. Consider running "Jl.config".\n');
       end
     end
     

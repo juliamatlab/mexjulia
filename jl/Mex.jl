@@ -1,11 +1,26 @@
 module Mex
 
+using MATLAB
+
+#include("mxbase.jl")
+#include("mxarray.jl")
+
+function open_matlab_library(lib::String)
+    lib_path = MATLAB.matlab_library_path == nothing ? lib : joinpath(MATLAB.matlab_library_path, lib)
+    ptr = Libdl.dlopen(lib_path, Libdl.RTLD_GLOBAL | Libdl.RTLD_LAZY)
+    if ptr == C_NULL
+        error("Failed to load $(lib)")
+    end
+    ptr
+end
+
+
 export jl_mex, call_matlab, mexfn
 
 using MATLAB
 
 # the libmex library
-const libmex = Libdl.dlopen(Libdl.find_library("libmex", [MATLAB.matlab_library_path]))
+const libmex = open_matlab_library("libmex")
 
 # return pointer to the appropriate libmex function
 mexfn(s::Symbol) = Libdl.dlsym(libmex, s)
