@@ -1,4 +1,7 @@
 Base.load_juliarc()
+include("MxArrays.jl")
+using MxArrays
 include("Mex.jl")
 using Mex
-using MATLAB
+
+redirect_output()

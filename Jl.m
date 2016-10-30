@@ -7,7 +7,7 @@ classdef Jl
     function varargout = mex(nout, varargin)
         varargout = cell(nout, 1);
         Jl.check_initialized;
-        [varargout{:}] = mexjulia('jl_mex', varargin{:});
+        [varargout{:}] = mexjulia('jl_mex', varargin{:});   
     end
 
     % interpret string(s) as Julia expression(s), returning value(s)
@@ -142,15 +142,9 @@ classdef Jl
 
       % build the mex file
       src = fullfile(Jl.this_dir, 'mexjulia.cpp');
-      mex_cmd = 'mex -largeArrayDims -O -outdir "%s" %s %s %s %s';
+      mex_cmd = 'mex -largeArrayDims -g -outdir "%s" %s %s %s %s';
       eval(sprintf(mex_cmd, Jl.this_dir, cflags, ldflags, src, ldlibs));
       
-%       % check for any issues loading the boot file
-%       [exit_code, boot_ld] = system(sprintf('%s -e "include(\\"%s\\")"', exe, Jl.boot_file));
-%       fprintf('Is the boot file loadable without error?\n%s', boot_ld);
-%       assert(exit_code == 0);
-%       fprintf('Yes.\n');
-
       % check if this directory is on the search path
       path_dirs = regexp(path, pathsep, 'split');
       if ispc
