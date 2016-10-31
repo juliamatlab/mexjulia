@@ -43,7 +43,7 @@ end
 # This version uses default data marshaling
 function (mx::MxArray)(args...)
     jvals = MxArray[MxArray(arg) for arg in args]
-    Any(mx(jvals)[1])
+    jvalue(mx(jvals)[1])
 end
 
 # Pass Julia exception up to MATLAB
@@ -59,7 +59,7 @@ end
 function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     try
         args = [MxArray(arg, false) for arg in ins]
-        vals = eval(parse(Any(args[1])))(args[2:end])
+        vals = eval(parse(jvalue(args[1])))(args[2:end])
         nouts = length(outs)
         outix = 1
         for val in vals
@@ -77,11 +77,11 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
 end
 
 # a fancier eval
-jl_eval(exprs::Vector{MxArray}) = [eval(parse(Any(e))) for e in exprs]
+jl_eval(exprs::Vector{MxArray}) = [eval(parse(jvalue(e))) for e in exprs]
 
 # call an arbitrary julia function (or other callable)
 function jl_call(args::Vector{MxArray})
-    vals = map(Any, args)
+    vals = map(jvalue, args)
     [eval(parse(vals[1]))(vals[2:end]...)]
 end
 

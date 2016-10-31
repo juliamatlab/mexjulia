@@ -688,7 +688,7 @@ function Function(mx::MxArray)
     (args...) -> mx(args...)
 end
 
-function Any(mx::MxArray)
+function jvalue(mx::MxArray)
     if is_numeric(mx) || is_logical(mx)
         if !is_sparse(mx)
             nelems(mx) == 1 ? jscalar(mx) :
