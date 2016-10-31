@@ -42,8 +42,8 @@ end
 
 # This version uses default data marshaling
 function (mx::MxArray)(args...)
-    jvals = MxArray[MxArray(arg) for arg in args]
-    jvalue(mx(jvals)[1])
+    mxs = MxArray[MxArray(arg) for arg in args]
+    jvalue(mx(mxs)[1])
 end
 
 # Pass Julia exception up to MATLAB
