@@ -1,5 +1,7 @@
 *.mexw64
 *.o
 *.asv
+*.pdp
+*.mexw64.pdb
 pathdef.m
-jlconfig.mat
+jldict.mat
