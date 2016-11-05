@@ -141,7 +141,11 @@ classdef jl
         lib_base = 'julia';
       end
       lib_path = jl.eval_with_exe(sprintf('Libdl.dlpath(\\\"lib%s\\\")', lib_base));
-      lib_dir = fileparts(lib_path);
+      if ispc
+        lib_dir = fullfile(jlhome, '..', 'lib');
+      else
+        lib_dir = fileparts(lib_path);
+      end
       jl.set('lib_base', lib_base);
       jl.set('lib_path', lib_path);
       jl.set('lib_dir', lib_dir);
@@ -209,10 +213,13 @@ classdef jl
         error('Failed to get mex build parameters. Run ''jl.config''.');
       end
       
-      mex_ptrn = 'mex LDFLAGS=''%s $LDFLAGS'' -v -largeArrayDims -outdir "%s" %s %s %s';
+      if ispc
+        mex_ptrn = 'mex -v -largeArrayDims %s -outdir "%s" %s %s %s';
+      else
+        mex_ptrn = 'mex LDFLAGS=''%s $LDFLAGS'' -v -largeArrayDims -outdir "%s" %s %s %s';
+      end
       mex_cmd = sprintf(mex_ptrn, ldflags, jl.this_dir, cflags, src, ldlibs);
       fprintf('The mex command to be executed:\n%s\n', mex_cmd);
-      setenv('LD_LIBRARY_PATH', jl.get('lib_path'));
       eval(mex_cmd);
     end
     
