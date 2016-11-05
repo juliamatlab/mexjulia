@@ -5,11 +5,11 @@ function x = lmdif(f, x0)
 persistent loaded;
 if isempty(loaded)
   jl_file = fullfile(fileparts(mfilename('fullpath')), 'lmdif.jl');
-  Jl.include(jl_file);
+  jl.include(jl_file);
   loaded = true;
 end
 
-sln = Jl.call('lmdif', f, x0);
+sln = jl.call('lmdif', f, x0);
 
 if ~(sln.x_converged || sln.f_converged || sln.g_converged)
   throw('lmdif failed to converge');

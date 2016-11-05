@@ -1,5 +1,5 @@
-#include <mex.h>
 #include <julia.h>
+#include <mex.h>
 
 struct jl_gc_pop_guard
 {

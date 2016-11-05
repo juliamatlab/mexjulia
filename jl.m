@@ -60,11 +60,11 @@ classdef jl
           error('It appears the mexjulia MEX function is missing. Consider running "Jl.build".\n');
         end
 
+        % tweak path to find shared libs
         if ispc
           % This is a hack for windows which lets the mex function
           % find the julia dlls during initialization without requiring that
-          % julia be on the path. Shouldn't be necessary on platforms
-          % that have rpath.
+          % julia be on the path.
           old_dir = pwd;
           cd(jl.julia_home);
         end
@@ -77,8 +77,11 @@ classdef jl
 
         % load the boot file
         mexjulia(0, ['include("' jl.boot_file '")']);
-      
-        if ispc, cd(old_dir), end
+
+        % restore the path
+        if ispc
+          cd(old_dir);
+        end
       end    
     end
     
@@ -109,48 +112,39 @@ classdef jl
       jl.set('julia_bin', exe);
       
       % get JULIA_HOME
-      cmd = 'println(unsafe_string(Base.JLOptions().julia_home))';
-      [~, jlhome] = system(sprintf('"%s" -e "%s"', exe, cmd));
-      jlhome = jl.chomp(jlhome);
+      jlhome = jl.eval_with_exe('unsafe_string(Base.JLOptions().julia_home)');
       assert(exist(jlhome, 'dir') == 7);
       jl.set('julia_home', jlhome);
       
       % get the path of the image file
-      cmd = 'println(unsafe_string(Base.JLOptions().image_file))';
-      [~, img] = system(sprintf('"%s" -e "%s"', exe, cmd));
-      img = jl.chomp(img);
+      img = jl.eval_with_exe('unsafe_string(Base.JLOptions().image_file)');
       assert(exist(img, 'file') == 2);
       jl.set('sys_image', img);
       
       % check for debugging
-      cmd = 'println(Base.JLOptions().debug_level > 1)';
-      [~, dbg] = system(sprintf('"%s" -e "%s"', exe, cmd));
-      dbg = jl.chomp(dbg);
+      dbg = jl.eval_with_exe('ccall(:jl_is_debugbuild, Cint, ()) != 0');
       jl.set('is_debug', dbg);
       
       % check if threading is enabled
-      cmd = 'println(ccall(:jl_threading_enabled, Cint, ()) != 0)';
-      [~, thr] = system(sprintf('"%s" -e "%s"', exe, cmd));
-      thr = jl.chomp(thr);
+      thr = jl.eval_with_exe('ccall(:jl_threading_enabled, Cint, ()) != 0');
       jl.set('threading_enabled', thr);
       
       % get include directory
       incdir = fullfile(fileparts(jlhome), 'include', 'julia');
       assert(exist(incdir, 'dir') == 7);
       jl.set('inc_dir', incdir);
-      
-      % get lib directory
-      libdir = fullfile(fileparts(jlhome), 'lib');
-      assert(exist(libdir, 'dir') == 7);
-      jl.set('lib_dir', libdir);
-      
+            
       % get julia lib
       if eval(dbg)
-        lib_base = 'libjulia-debug';
+        lib_base = 'julia-debug';
       else
-        lib_base = 'libjulia';
+        lib_base = 'julia';
       end
+      lib_path = jl.eval_with_exe(sprintf('Libdl.dlpath(\\\"lib%s\\\")', lib_base));
+      lib_dir = fileparts(lib_path);
       jl.set('lib_base', lib_base);
+      jl.set('lib_path', lib_path);
+      jl.set('lib_dir', lib_dir);
       
       % set cflags
       if eval(dbg)
@@ -165,11 +159,18 @@ classdef jl
       jl.set('build_cflags', cflags);
       
       % set ldflags
-      ldflags = ['-L' '"' jl.get('lib_dir') '"'];
+      ldflags = ['-L"' jl.get('lib_dir') '"'];
+      if ~ispc
+        ldflags = [ldflags ' -Wl,-rpath="' jl.get('lib_dir') '"'];
+      end
       jl.set('build_ldflags', ldflags);
       
       % set ldlibs
-      ldlibs = [ jl.get('lib_base') '.dll.a libopenlibm.dll.a' ];
+      if ispc
+        ldlibs = [ 'lib' jl.get('lib_base') '.dll.a' ];
+      else
+        ldlibs = [ '-l' jl.get('lib_base') ];
+      end
       jl.set('build_ldlibs', ldlibs);
       
       % set mex source file
@@ -177,7 +178,7 @@ classdef jl
       jl.set('build_src', src);
       
       % show the contents of the dictionary
-      jl.get;
+      disp(jl.get);
       
       % check if this directory is on the search path
       path_dirs = regexp(path, pathsep, 'split');
@@ -207,22 +208,12 @@ classdef jl
       catch
         error('Failed to get mex build parameters. Run ''jl.config''.');
       end
-        
-      try
-        mex_ptrn = 'mex -largeArrayDims -outdir "%s" %s %s %s %s';
-        mex_cmd = sprintf(mex_ptrn, jl.this_dir, cflags, ldflags, src, ldlibs);
-        fprintf('The mex command to be executed:\n%s\n', mex_cmd);
-        eval(mex_cmd);
-      catch
-        jl.get;
-        msg = ['Mex build failed.\n', ...
-          'Consider editing the ''build_*'' fields in the mexjulia',...
-          ' dictionary', ...
-          ' using the ''jl.set'' command.\nRun ''jl.get'' to see the',...
-          ' current',...
-          ' contents of the mexjulia dictionary.'];
-        error(sprintf(msg));
-      end
+      
+      mex_ptrn = 'mex LDFLAGS=''%s $LDFLAGS'' -v -largeArrayDims -outdir "%s" %s %s %s';
+      mex_cmd = sprintf(mex_ptrn, ldflags, jl.this_dir, cflags, src, ldlibs);
+      fprintf('The mex command to be executed:\n%s\n', mex_cmd);
+      setenv('LD_LIBRARY_PATH', jl.get('lib_path'));
+      eval(mex_cmd);
     end
     
     function clear()
@@ -309,6 +300,25 @@ classdef jl
     function str = chomp(str)
       str = regexprep(str, '^\s*', '');
       str = regexprep(str, '\s$', '');
+    end
+    
+    function [val, err] = eval_with_exe(expr)
+      exe = jl.get('julia_bin');
+      if ~ispc
+          % hide the LD_LIBRARY_PATH as it can cause errors when running
+          % julia from matlab
+          save_ld_lib_path = getenv('LD_LIBRARY_PATH');
+          setenv LD_LIBRARY_PATH;
+      end
+      [err, val] = system(sprintf('"%s" -e "println(%s)"', exe, expr));
+      if ~ispc
+          % restore the LD_LIBRARY_PATH
+          setenv('LD_LIBRARY_PATH', save_ld_lib_path);
+      end
+      if err ~= 0
+          error(val)
+      end
+      val = jl.chomp(val);
     end
     
   end
