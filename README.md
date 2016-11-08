@@ -17,36 +17,36 @@ from the MATLAB command prompt.
 Start MATLAB and navigate to the `mexjulia` directory. Once there, run:
 
 ```
->> Jl.build
+>> jl.config
 ```
 
 You will be prompted to select a `julia` executable. The build process will:
- 1. guess the path to the `julia-config.jl` script,
- 1. use `julia-config.jl` to determine build options,
+ 1. use `julia` to determine build options,
  1. build the `mexjulia` MEX function from source,
- 1. check that the [`MATLAB.jl`](https://github.com/JuliaInterop/MATLAB.jl) package is installed,
  1. add the `mexjulia` directory to your MATLAB path.
 
-Call `Jl.build` any time you want to build against a different version of Julia. You can
+Call `jl.config` any time you want to build against a different version of Julia. You can
 pass in the path to the desired Julia executable to build against if you don't want
 to be prompted to select one.
 
 ## Quick start
 
-Use `Jl.eval` to parse and evaluate MATLAB strings as Julia expressions:
+Use `jl.eval` to parse and evaluate MATLAB strings as Julia expressions:
 
 ```
->> Jl.eval('2+2')
+>> jl.eval('2+2')
 
 ans =
 
-                    4
+  int64
+
+   4
 ```
 
 You can evaluate multiple expressions in a single call:
 
 ```
->> [s, c] = Jl.eval('sin(pi/3)', 'cos(pi/3)')
+>> [s, c] = jl.eval('sin(pi/3)', 'cos(pi/3)')
 
 s =
 
@@ -61,60 +61,73 @@ c =
 Julia's `STDOUT` and `STDERR` are redirected to the MATLAB console:
 
 ```
->> Jl.eval('println("Hello, world!")');
+>> jl.eval('println("Hello, world!")');
 Hello, world!
->> Jl.eval('warn("Oh, no!")');
+>> jl.eval('warn("Oh, no!")');
 WARNING: Oh, no!
 ```
 
-Use `Jl.call` to call a Julia function specified by its name as a string:
+One can avoid the parentheses and string quotes using `jleval` (a simple wrapper around
+`jl.eval`) and MATLAB's command syntax:
 
 ```
->> Jl.call('factorial', 10)
+>> jleval 1 + 1
+
+ans =
+
+  int64
+
+   2
+
+>> jleval println("Hello, world!")
+Hello, world!
+```
+
+Use `jl.call` to call a Julia function specified by its name as a string:
+
+```
+>> jl.call('factorial', 10)
 
 ans =
 
      3628800
 ```
 
-`Jl.call` marshals MATLAB data to/from Julia by invoking `MATLAB.jl`'s `jvariable` function on each of the inputs and `mxarray` on its return value.
+`jl.call` marshals MATLAB data to/from Julia making certain default choices for doing so.
 
-Load new Julia code by calling `Jl.include`:
+Load new Julia code by calling `jl.include`:
 
 ```
->> Jl.include('my_own_julia_code.jl')
+>> jl.include('my_own_julia_code.jl')
 ```
 
 Exercise more control over how data is marshaled between MATLAB and Julia by defining
-a Julia function with a "MEX-like" signature and invoking it with `Jl.mex`:
+a Julia function with a "MEX-like" signature and invoking it with `jl.mex`:
 
 ```
->> Jl.eval('double_it(args::Vector{MxArray}) = [2*jvariable(arg) for arg in args]');
->> a = rand(5, 5)
+>> jleval double_it(args::Vector{MxArray}) = [2*jvalue(arg) for arg in args]
+>> a = rand(5,5)
 
 a =
 
-    0.8687    0.4314    0.1361    0.8530    0.0760
-    0.0844    0.9106    0.8693    0.6221    0.2399
-    0.3998    0.1818    0.5797    0.3510    0.1233
-    0.2599    0.2638    0.5499    0.5132    0.1839
-    0.8001    0.1455    0.1450    0.4018    0.2400
+    0.6443    0.9390    0.2077    0.1948    0.3111
+    0.3786    0.8759    0.3012    0.2259    0.9234
+    0.8116    0.5502    0.4709    0.1707    0.4302
+    0.5328    0.6225    0.2305    0.2277    0.1848
+    0.3507    0.5870    0.8443    0.4357    0.9049
 
->> Jl.mex(1, 'double_it', a)
+>> jl.mex(1, 'double_it', a)
 
 ans =
 
-    1.7374    0.8628    0.2721    1.7061    0.1519
-    0.1689    1.8213    1.7386    1.2441    0.4798
-    0.7996    0.3637    1.1594    0.7019    0.2466
-    0.5197    0.5276    1.0997    1.0265    0.3678
-    1.6001    0.2911    0.2899    0.8036    0.4799
+    1.2886    1.8780    0.4155    0.3895    0.6222
+    0.7572    1.7519    0.6025    0.4518    1.8468
+    1.6232    1.1003    0.9418    0.3414    0.8604
+    1.0657    1.2450    0.4610    0.4553    0.3696
+    0.7015    1.1741    1.6886    0.8714    1.8098
 ```
 
-The first argument to `Jl.mex` is the number of return values to expect. The second is the name of the function to be invoked. All remaining arguments are treated as function arguments. `Jl.mex` expects the functions on which it is invoked to accept a single argument of type `Vector{MxArray}` and to return an iterable collection of values on which `mxarray` may be successfully invoked (_e.g._, a value of type `Vector{MxArray}`).
+The first argument to `jl.mex` is the number of return values to expect. The second is the name of the function to be invoked. All remaining arguments are treated as function arguments. `jl.mex` expects the functions on which it is invoked to accept a single argument of type `Vector{MxArray}` and to return an iterable collection of values on which `mxarray` may be successfully invoked (_e.g._, a value of type `Vector{MxArray}`).
 
-See [`lm_test.m`](examples/lm_test.m), [`lm.m`](examples/lm.m), and [`lm.jl`](examples/lm.jl) for a more complex example that exposes [`Optim.jl`](https://github.com/JuliaOpt/Optim.jl)'s Levenberg-Marquardt solver to MATLAB. In it, callbacks are captured as `MxArray`s containing MATLAB function handles.
-
-## Caveats
-
-The input arguments passed in to `mexjulia` from MATLAB must not be modified on the Julia side. If it happens, expect MATLAB to crash. This is a requirement of the MEX interface, and is not specific to `mexjulia`.
+See [`lmdif_test.m`](examples/lmdif_test.m), [`lm.m`](examples/lmdif.m), and [`lmdif.jl`](examples/lmdif.jl) for a more complex example that exposes [`Optim.jl`](https://github.com/JuliaOpt/Optim.jl)'s Levenberg-Marquardt solver to MATLAB. It presents an example of a MATLAB function handle being passed to Julia and used as a
+callback. (The default marshaling wraps matlab function handles in an anonymous function.)
