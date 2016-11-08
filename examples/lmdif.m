@@ -9,12 +9,12 @@ if isempty(loaded)
   loaded = true;
 end
 
-sln = jl.call('lmdif', f, x0);
+sln = jl.callkw(2, 'lmdif', f, x0, 'show_trace', true);
 
 if ~(sln.x_converged || sln.f_converged || sln.g_converged)
   throw('lmdif failed to converge');
 end
 
-x = sln.minimum;
+x = sln.minimizer;
 
 end

@@ -81,6 +81,8 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
         msg.own = false
         outs[1] = msg.ptr
     end
+    flush(STDOUT)
+    flush(STDERR)
     gc()
 end
 
@@ -91,6 +93,25 @@ jl_eval(exprs::Vector{MxArray}) = [eval(Main, parse(jvalue(e))) for e in exprs]
 function jl_call(args::Vector{MxArray})
     vals = map(jvalue, args)
     [eval(Main, parse(vals[1]))(vals[2:end]...)]
+end
+
+# call a julia function with keyword arguments
+# the first value is an integer, n,  representing the number of positional arguments
+# the second value represents a function to call
+# the next n arguments are assumed to be positional
+# all following arguments are assumed to be grouped in pairs, the first is the
+# name of the keyword argument, the second its value
+function jl_call_kw(args::Vector{MxArray})
+    vals = map(jvalue, args)
+    npos = vals[1]
+    expr = Expr(:call, parse(vals[2]))
+    for ix in 3:(2+npos)
+        push!(expr.args, vals[ix])
+    end
+    for ix in (3+npos):2:length(vals)
+        push!(expr.args, Expr(:kw, parse(vals[ix]), vals[ix+1]))
+    end
+    [eval(Main, expr)]
 end
 
 

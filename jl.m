@@ -2,11 +2,18 @@ classdef jl
   %JL static class encapsulating matlab-side functionality for mexjulia
   
   methods (Static)
-    % call a MEX-like Julia function
-    function varargout = mex(nout, varargin)
+    % Call a MEX-like Julia function.
+    %
+    % nout - the number of expected return values
+    % fn - the name of the function to call
+    %
+    % A MEX-like function is one that can be invoked with a value of type
+    % `Vector{MxArray}` and returns a collection of values for which a
+    % conversion to `MxArray` exists.
+    function varargout = mex(nout, fn, varargin)
       jl.check_initialized;
       outputs = cell(nout+1, 1);
-      [outputs{:}] = mexjulia('jl_mex', varargin{:});   
+      [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});   
       varargout = outputs(2:end);
       result = outputs{1};
       if ischar(result)
@@ -14,16 +21,29 @@ classdef jl
       end
     end
 
-    % interpret string(s) as Julia expression(s), returning value(s)
+    % Interpret string(s) as Julia expression(s), returning value(s).
     function varargout = eval(varargin)
       varargout = cell(nargin, 1);
       [varargout{:}] = jl.mex(nargin, 'Mex.jl_eval', varargin{:});
     end
 
-    % call a julia function (specified by its name as a string) with
-    % the given arguments, returning its value
-    function v = call(varargin)
-      v = jl.mex(1, 'Mex.jl_call', varargin{:});
+    % Call a julia function with the given arguments, returning its value.
+    %
+    % fn - the name of the function to call
+    function v = call(fn, varargin)
+      v = jl.mex(1, 'Mex.jl_call', fn, varargin{:});
+    end
+    
+    % Call a julia function, possibly with keyword arguments, returning its
+    % value.
+    %
+    % npos - the number of arguments to be treated as positional
+    % fn - the name of the function to call
+    %
+    % Arguments beyond the first npos are assumed to come in key/value
+    % pairs.
+    function v = callkw(npos, fn, varargin)
+        v = jl.mex(1, 'Mex.jl_call_kw', uint32(npos), fn, varargin{:});
     end
 
     % include a file in the Julia runtime
