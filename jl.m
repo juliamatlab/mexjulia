@@ -4,15 +4,20 @@ classdef jl
   methods (Static)
     % call a MEX-like Julia function
     function varargout = mex(nout, varargin)
-        varargout = cell(nout, 1);
-        jl.check_initialized;
-        [varargout{:}] = mexjulia('jl_mex', varargin{:});   
+      jl.check_initialized;
+      outputs = cell(nout+1, 1);
+      [outputs{:}] = mexjulia('jl_mex', varargin{:});   
+      varargout = outputs(2:end);
+      result = outputs{1};
+      if ischar(result)
+        error(result);
+      end
     end
 
     % interpret string(s) as Julia expression(s), returning value(s)
     function varargout = eval(varargin)
-        varargout = cell(nargin, 1);
-        [varargout{:}] = jl.mex(nargin, 'Mex.jl_eval', varargin{:});
+      varargout = cell(nargin, 1);
+      [varargout{:}] = jl.mex(nargin, 'Mex.jl_eval', varargin{:});
     end
 
     % call a julia function (specified by its name as a string) with

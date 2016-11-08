@@ -2,19 +2,14 @@ module Mex
 
 using MxArrays
 
-export jl_mex, call_matlab, mexfn, redirect_output
+export jl_mex, call_matlab, redirect_output
 
 # the libmex library
 const libmex = open_matlab_library("libmex")
-
-# return pointer to the appropriate libmex function
-mexfn(s::Symbol) = Libdl.dlsym(libmex, s)
-
-# some libmex functions used internally
-const _call_matlab_with_trap = mexfn(:mexCallMATLABWithTrap)
-const _err_msg_txt = mexfn(:mexErrMsgTxt)
+const _call_matlab_with_trap = Libdl.dlsym(libmex, :mexCallMATLABWithTrap)
 
 # Call a matlab function specified by name
+# This version allows full control over data marshaling.
 function call_matlab(fn::String, args::Vector{MxArray}, nout::Integer = 1)
     ins = Ptr{Void}[arg.ptr for arg in args]
     nin = length(ins)
@@ -25,11 +20,17 @@ function call_matlab(fn::String, args::Vector{MxArray}, nout::Integer = 1)
         nout, outs, nin, ins, fn)
     if ptr != C_NULL
         # pass MATLAB exception to Julia
-        msg = jstring(call_matlab("getReport", [MxArray(ptr), MxArray("basic")], 1)[1])
+        msg = jstring(call_matlab("getReport", [MxArray(ptr), mxarray("basic")], 1)[1])
         error(msg)
     end
 
     MxArray[MxArray(o) for o in outs]
+end
+
+# This version uses default data marshaling.
+function call_matlab(fn, args...)
+    mxs = MxArray[mxarray(arg) for arg in args]
+    jvalue(call_matlab(fn, mxs, 1)[1])
 end
 
 # Make MxArray callable. Works for strings or function handles.
@@ -40,56 +41,63 @@ function (mx::MxArray)(args::Vector{MxArray}, nout::Integer = 1)
     return call_matlab("feval", _args, nout)
 end
 
-# This version uses default data marshaling
+# This version uses default data marshaling.
 function (mx::MxArray)(args...)
-    mxs = MxArray[MxArray(arg) for arg in args]
+    mxs = MxArray[mxarray(arg) for arg in args]
     jvalue(mx(mxs)[1])
 end
 
-# Pass Julia exception up to MATLAB
-function mex_throw(e, bt)
+# Encode Julia error as string
+function error_string(e, bt)
     buf = IOBuffer()
     showerror(buf, e, bt)
     seek(buf, 0)
-    errmsg = readstring(buf)
-    ccall(_err_msg_txt, Void, (Ptr{UInt8},), errmsg)
+    readstring(buf)
 end
 
 # safe, convenient wrapper for mex-like Julia functions
 function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
+    nouts = length(outs)
+    none = mxarray(false)
+    none.own = false
+    for ix in 1:nouts
+        outs[ix] = none.ptr
+    end
     try
         args = [MxArray(arg, false) for arg in ins]
-        vals = eval(parse(jvalue(args[1])))(args[2:end])
-        nouts = length(outs)
-        outix = 1
+        vals = eval(Main, parse(jvalue(args[1])))(args[2:end])
+        outix = 2
         for val in vals
             if outix > nouts
                 break
             end
-            mx = MxArray(val)
+            mx = mxarray(val)
             mx.own = false
             outs[outix] = mx.ptr
             outix += 1
         end
     catch e
-        mex_throw(e, catch_backtrace())
+        msg = mxarray(error_string(e, catch_backtrace()))
+        msg.own = false
+        outs[1] = msg.ptr
     end
+    gc()
 end
 
 # a fancier eval
-jl_eval(exprs::Vector{MxArray}) = [eval(parse(jvalue(e))) for e in exprs]
+jl_eval(exprs::Vector{MxArray}) = [eval(Main, parse(jvalue(e))) for e in exprs]
 
 # call an arbitrary julia function (or other callable)
 function jl_call(args::Vector{MxArray})
     vals = map(jvalue, args)
-    [eval(parse(vals[1]))(vals[2:end]...)]
+    [eval(Main, parse(vals[1]))(vals[2:end]...)]
 end
 
 
 # *** stuff for redirecting output
 
-function fwrite(fid::Float64, str::String)
-    call_matlab("fwrite", MxArray[MxArray(fid), MxArray(str), MxArray("char")], 0)
+function fwrite(fid, msg)
+    call_matlab("fwrite", convert(Float64, fid), msg, "char")
     nothing
 end
 
@@ -99,7 +107,7 @@ function readloop(fid, s)
             fwrite(fid, String(readavailable(s)))
         end
     catch e
-        mex_throw(e, catch_backtrace())
+        fwrite(2, error_string(e, catch_backtrace()))
     end
 end
 
@@ -112,11 +120,11 @@ function redirect_output()
 
     if mexstdout == nothing || !isopen(mexstdout)
         mexstdout = redirect_stdout()[1]
-        @schedule readloop(1.0, mexstdout)
+        @schedule readloop(1, mexstdout)
     end
     if mexstderr == nothing || !isopen(mexstderr)
         mexstderr = redirect_stderr()[1]
-        @schedule readloop(2.0, mexstderr)
+        @schedule readloop(2, mexstderr)
     end
 
     nothing
