@@ -31,7 +31,7 @@ classdef jl
     %
     % fn - the name of the function to call
     function v = call(fn, varargin)
-      v = jl.mex(1, 'Mex.jl_call', fn, varargin{:});
+      v = jl.callkw(nargin-1, fn, varargin{:});
     end
     
     % Call a julia function, possibly with keyword arguments, returning its
@@ -43,6 +43,12 @@ classdef jl
     % Arguments beyond the first npos are assumed to come in key/value
     % pairs.
     function v = callkw(npos, fn, varargin)
+        nkw = nargin - npos - 2;
+        if nkw < 0
+            error('The number of positional arguments exceeds the total number of arguments.');
+        elseif mod(nkw,2) ~= 0
+            error('The number of keyword arguments is %u, but must be even.', nkw);
+        end
         v = jl.mex(1, 'Mex.jl_call_kw', uint32(npos), fn, varargin{:});
     end
 

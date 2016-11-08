@@ -86,17 +86,11 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     gc()
 end
 
-# a fancier eval
+# evaluate Julia expressions
 jl_eval(exprs::Vector{MxArray}) = [eval(Main, parse(jvalue(e))) for e in exprs]
 
-# call an arbitrary julia function (or other callable)
-function jl_call(args::Vector{MxArray})
-    vals = map(jvalue, args)
-    [eval(Main, parse(vals[1]))(vals[2:end]...)]
-end
-
-# call a julia function with keyword arguments
-# the first value is an integer, n,  representing the number of positional arguments
+# call a julia function, possibly with keyword arguments
+# the first value is an integer, n, representing the number of positional arguments
 # the second value represents a function to call
 # the next n arguments are assumed to be positional
 # all following arguments are assumed to be grouped in pairs, the first is the
