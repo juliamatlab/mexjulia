@@ -20,7 +20,7 @@ function call_matlab(fn::String, args::Vector{MxArray}, nout::Integer = 1)
         nout, outs, nin, ins, fn)
     if ptr != C_NULL
         # pass MATLAB exception to Julia
-        msg = jstring(call_matlab("getReport", [MxArray(ptr), mxarray("basic")], 1)[1])
+        msg = jstring(call_matlab("getReport", [MxArray(ptr), MxArray("basic")], 1)[1])
         error(msg)
     end
 
@@ -29,7 +29,7 @@ end
 
 # This version uses default data marshaling.
 function call_matlab(fn, args...)
-    mxs = MxArray[mxarray(arg) for arg in args]
+    mxs = MxArray[MxArray(arg) for arg in args]
     jvalue(call_matlab(fn, mxs, 1)[1])
 end
 
@@ -43,7 +43,7 @@ end
 
 # This version uses default data marshaling.
 function (mx::MxArray)(args...)
-    mxs = MxArray[mxarray(arg) for arg in args]
+    mxs = MxArray[MxArray(arg) for arg in args]
     jvalue(mx(mxs)[1])
 end
 
@@ -58,7 +58,7 @@ end
 # safe, convenient wrapper for mex-like Julia functions
 function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     nouts = length(outs)
-    none = mxarray(false)
+    none = MxArray(false)
     for ix in 1:nouts
         outs[ix] = none.ptr
     end
@@ -70,12 +70,12 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
             if outix > nouts
                 break
             end
-            mx = mxarray(val)
+            mx = MxArray(val)
             outs[outix] = mx.ptr
             outix += 1
         end
     catch e
-        msg = mxarray(error_string(e, catch_backtrace()))
+        msg = MxArray(error_string(e, catch_backtrace()))
         outs[1] = msg.ptr
     end
     flush(STDOUT)

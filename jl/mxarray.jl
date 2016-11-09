@@ -7,8 +7,6 @@ type MxArray
     ptr::Ptr{Void}
 end
 
-mxarray(mx::MxArray) = mx
-
 # delete & duplicate
 
 function delete(mx::MxArray)
@@ -263,7 +261,7 @@ const _mx_get_fieldname = mxfunc(:mxGetFieldNameByNumber)
 
 # create zero arrays
 
-mxempty() = mxarray(Float64, 0, 0)
+mxempty() = MxArray(Float64, 0, 0)
 
 function _dims_to_mwSize(dims::Tuple{Vararg{Int}})
     ndim = length(dims)
@@ -274,28 +272,28 @@ function _dims_to_mwSize(dims::Tuple{Vararg{Int}})
     _dims
 end
 
-function mxarray{T<:MxNum}(ty::Type{T}, dims::Tuple{Vararg{Int}})
+function MxArray{T<:MxNum}(ty::Type{T}, dims::Tuple{Vararg{Int}})
     pm = ccall(_mx_create_numeric_arr, Ptr{Void},
         (mwSize, Ptr{mwSize}, mxClassID, mxComplexity),
         length(dims), _dims_to_mwSize(dims), mxclassid(ty), mxcomplexflag(ty))
 
     MxArray(pm)
 end
-mxarray{T<:MxNum}(ty::Type{T}, dims::Int...) = mxarray(ty, dims)
+MxArray{T<:MxNum}(ty::Type{T}, dims::Int...) = MxArray(ty, dims)
 
 # create scalars
 
-function mxarray(x::Float64)
+function MxArray(x::Float64)
     pm = ccall(_mx_create_double_scalar, Ptr{Void}, (Cdouble,), x)
     MxArray(pm)
 end
 
-function mxarray(x::Bool)
+function MxArray(x::Bool)
     pm = ccall(_mx_create_logical_scalar, Ptr{Void}, (Bool,), x)
     MxArray(pm)
 end
 
-function mxarray{T<:MxRealNum}(x::T)
+function MxArray{T<:MxRealNum}(x::T)
     pm = ccall(_mx_create_numeric_mat, Ptr{Void},
         (mwSize, mwSize, mxClassID, mxComplexity),
         1, 1, mxclassid(T), mxcomplexflag(T))
@@ -305,21 +303,21 @@ function mxarray{T<:MxRealNum}(x::T)
     unsafe_wrap(Array, pdat, (1,))[1] = x
     MxArray(pm)
 end
-mxarray{T<:MxComplexNum}(x::T) = mxarray([x])
+MxArray{T<:MxComplexNum}(x::T) = MxArray([x])
 
 # conversion from Julia variables to MATLAB
 # Note: the conversion is deep-copy, as there is no way to let
 # mxArray use Julia array's memory
 
-function mxarray{T<:MxRealNum}(a::Array{T})
-    mx = mxarray(T, size(a))
+function MxArray{T<:MxRealNum}(a::Array{T})
+    mx = MxArray(T, size(a))
     ccall(:memcpy, Ptr{Void}, (Ptr{Void}, Ptr{Void}, UInt),
         data_ptr(mx), a, length(a) * sizeof(T))
     mx
 end
 
-function mxarray{T<:MxComplexNum}(a::Array{T})
-    mx = mxarray(T, size(a))
+function MxArray{T<:MxComplexNum}(a::Array{T})
+    mx = MxArray(T, size(a))
     na = length(a)
     rdat = unsafe_wrap(Array, real_ptr(mx), na)
     idat = unsafe_wrap(Array, imag_ptr(mx), na)
@@ -330,8 +328,8 @@ function mxarray{T<:MxComplexNum}(a::Array{T})
     mx
 end
 
-mxarray(a::BitArray) = mxarray(convert(Array{Bool}, a))
-mxarray(a::Range) = mxarray([a;])
+MxArray(a::BitArray) = MxArray(convert(Array{Bool}, a))
+MxArray(a::Range) = MxArray([a;])
 
 # sparse matrix
 
@@ -371,7 +369,7 @@ function _copy_sparse_mat{V,I}(a::SparseMatrixCSC{V,I},
     ccall(:memcpy, Ptr{Void}, (Ptr{Void}, Ptr{Void}, UInt), pr_p, v, nnz * sizeof(V))
 end
 
-function mxarray{V<:Union{Float64,Bool},I}(a::SparseMatrixCSC{V,I})
+function MxArray{V<:Union{Float64,Bool},I}(a::SparseMatrixCSC{V,I})
     m::Int = a.m
     n::Int = a.n
     nnz = length(a.nzval)
@@ -390,7 +388,7 @@ end
 
 # char arrays and string
 
-function mxarray(s::String)
+function MxArray(s::String)
     wchars = transcode(UInt16, s)
     len = length(wchars)
     pm = ccall(_mx_create_char_array, Ptr{Void}, (mwSize, Ptr{mwSize}), 2, [1, len])
@@ -422,12 +420,12 @@ end
 function mxcellarray(a::Array)
     pm = mxcellarray(size(a))
     for i = 1 : length(a)
-        set_cell(pm, i, mxarray(a[i]))
+        set_cell(pm, i, MxArray(a[i]))
     end
     pm
 end
 
-mxarray(a::Array) = mxcellarray(a)
+MxArray(a::Array) = mxcellarray(a)
 
 # struct arrays
 
@@ -508,7 +506,7 @@ function mxstruct(pairs::Pairs...)
     end
     mx = mxstruct(fieldnames)
     for i = 1 : nf
-        set_field(mx, fieldnames[i], mxarray(pairs[i][2]))
+        set_field(mx, fieldnames[i], MxArray(pairs[i][2]))
     end
     mx
 end
@@ -518,7 +516,7 @@ function mxstruct{T}(d::T)
     names_str = map(string, names)
     mx = mxstruct(names_str...)
     for i = 1:length(names)
-        set_field(mx, names_str[i], mxarray(getfield(d, names[i])))
+        set_field(mx, names_str[i], MxArray(getfield(d, names[i])))
     end
     mx
 end
@@ -534,13 +532,13 @@ function mxstructarray{T}(d::Array{T})
 
     for i = 1:length(d), j = 1:length(names)
         set_field(mx, i, names_str[j],
-            mxarray(getfield(d[i], names[j])))
+            MxArray(getfield(d[i], names[j])))
     end
     mx
 end
 
 mxstruct(d::Associative) = mxstruct(collect(d)...)
-mxarray(d) = mxstruct(d)
+MxArray(d) = mxstruct(d)
 
 
 ###########################################################
