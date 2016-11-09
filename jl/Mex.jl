@@ -59,12 +59,11 @@ end
 function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     nouts = length(outs)
     none = mxarray(false)
-    none.own = false
     for ix in 1:nouts
         outs[ix] = none.ptr
     end
     try
-        args = [MxArray(arg, false) for arg in ins]
+        args = [MxArray(arg) for arg in ins]
         vals = eval(Main, parse(jvalue(args[1])))(args[2:end])
         outix = 2
         for val in vals
@@ -72,18 +71,15 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
                 break
             end
             mx = mxarray(val)
-            mx.own = false
             outs[outix] = mx.ptr
             outix += 1
         end
     catch e
         msg = mxarray(error_string(e, catch_backtrace()))
-        msg.own = false
         outs[1] = msg.ptr
     end
     flush(STDOUT)
     flush(STDERR)
-    gc()
 end
 
 # evaluate Julia expressions
@@ -113,7 +109,6 @@ end
 
 function fwrite(fid, msg)
     call_matlab("fwrite", convert(Float64, fid), msg, "char")
-    nothing
 end
 
 function readloop(fid, s)
@@ -141,8 +136,6 @@ function redirect_output()
         mexstderr = redirect_stderr()[1]
         @schedule readloop(2, mexstderr)
     end
-
-    nothing
 end
 
 end # module

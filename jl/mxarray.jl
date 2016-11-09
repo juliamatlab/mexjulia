@@ -5,18 +5,6 @@ mxfunc(s::Symbol) = Libdl.dlsym(libmx, s)
 
 type MxArray
     ptr::Ptr{Void}
-    own::Bool
-
-    function MxArray(p::Ptr{Void}, own::Bool)
-        if p == C_NULL
-            error("NULL pointer for MxArray.")
-        end
-        mx = new(p, own)
-        finalizer(mx, delete)
-        mx
-    end
-
-    MxArray(p::Ptr{Void}) = MxArray(p, true)
 end
 
 mxarray(mx::MxArray) = mx
@@ -24,7 +12,7 @@ mxarray(mx::MxArray) = mx
 # delete & duplicate
 
 function delete(mx::MxArray)
-    if mx.own && !(mx.ptr == C_NULL)
+    if !(mx.ptr == C_NULL)
         ccall(mxfunc(:mxDestroyArray), Void, (Ptr{Void},), mx.ptr)
     end
     mx.ptr = C_NULL
@@ -423,11 +411,10 @@ mxcellarray(dims::Int...) = mxcellarray(dims)
 
 function get_cell(mx::MxArray, i::Integer)
     pm = ccall(_mx_get_cell, Ptr{Void}, (Ptr{Void}, mwIndex), mx.ptr, i-1)
-    MxArray(pm, false)
+    MxArray(pm)
 end
 
 function set_cell(mx::MxArray, i::Integer, v::MxArray)
-    v.own = false
     ccall(_mx_set_cell, Void, (Ptr{Void}, mwIndex, Ptr{Void}),
         mx.ptr, i - 1, v.ptr)
 end
@@ -470,7 +457,6 @@ function mxstruct(fn1::String, fnr::String...)
 end
 
 function set_field(mx::MxArray, i::Integer, f::String, v::MxArray)
-    v.own = false
     ccall(_mx_set_field, Void,
         (Ptr{Void}, mwIndex, Ptr{UInt8}, Ptr{Void}),
         mx.ptr, i-1, f, v.ptr)
@@ -484,7 +470,7 @@ function get_field(mx::MxArray, i::Integer, f::String)
     if pm == C_NULL
         throw(ArgumentError("Failed to get field."))
     end
-    MxArray(pm, false)
+    MxArray(pm)
 end
 
 get_field(mx::MxArray, f::String) = get_field(mx, 1, f)
@@ -495,7 +481,7 @@ function get_field(mx::MxArray, i::Integer, fn::Integer)
     if pm == C_NULL
         throw(ArgumentError("Failed to get field."))
     end
-    MxArray(pm, false)
+    MxArray(pm)
 end
 
 get_field(mx::MxArray, fn::Integer) = get_field(mx, 1, fn)

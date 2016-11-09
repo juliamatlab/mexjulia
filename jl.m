@@ -10,7 +10,7 @@ classdef jl
     % A MEX-like function is one that can be invoked with a value of type
     % `Vector{MxArray}` and returns a collection of values for which a
     % conversion to `MxArray` exists.
-    function varargout = mex(nout, fn, varargin)
+    function varargout = mexn(nout, fn, varargin)
       jl.check_initialized;
       outputs = cell(nout+1, 1);
       [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});   
@@ -20,11 +20,16 @@ classdef jl
         error(result);
       end
     end
+    
+    % Like mexn but assumes exactly one output
+    function val = mex(fn, varargin)
+       val = jl.mexn(1, fn, varargin{:}); 
+    end
 
     % Interpret string(s) as Julia expression(s), returning value(s).
     function varargout = eval(varargin)
       varargout = cell(nargin, 1);
-      [varargout{:}] = jl.mex(nargin, 'Mex.jl_eval', varargin{:});
+      [varargout{:}] = jl.mexn(nargin, 'Mex.jl_eval', varargin{:});
     end
 
     % Call a julia function with the given arguments, returning its value.
@@ -49,12 +54,12 @@ classdef jl
         elseif mod(nkw,2) ~= 0
             error('The number of keyword arguments is %u, but must be even.', nkw);
         end
-        v = jl.mex(1, 'Mex.jl_call_kw', uint32(npos), fn, varargin{:});
+        v = jl.mex('Mex.jl_call_kw', uint32(npos), fn, varargin{:});
     end
 
     % include a file in the Julia runtime
     function include(fn)
-      jl.eval(['include("' jl.forward_slashify(fn) '")']);
+      jl.call('include', jl.forward_slashify(fn));
     end
     
     function repl(prompt, doneq)
