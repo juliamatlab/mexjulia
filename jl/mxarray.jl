@@ -5,6 +5,7 @@ mxfunc(s::Symbol) = Libdl.dlsym(libmx, s)
 
 type MxArray
     ptr::Ptr{Void}
+    MxArray(p::Ptr{Void}) = new(p)
 end
 
 # delete & duplicate

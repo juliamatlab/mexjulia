@@ -80,6 +80,7 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     end
     flush(STDOUT)
     flush(STDERR)
+    gc()
 end
 
 # evaluate Julia expressions
