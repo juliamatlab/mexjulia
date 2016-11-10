@@ -32,13 +32,6 @@ classdef jl
       [varargout{:}] = jl.mexn(nargin, 'Mex.jl_eval', varargin{:});
     end
 
-    % Call a julia function with the given arguments, returning its value.
-    %
-    % fn - the name of the function to call
-    function v = call(fn, varargin)
-      v = jl.callkw(nargin-1, fn, varargin{:});
-    end
-    
     % Call a julia function, possibly with keyword arguments, returning its
     % value.
     %
@@ -56,7 +49,25 @@ classdef jl
         end
         v = jl.mex('Mex.jl_call_kw', uint32(npos), fn, varargin{:});
     end
-
+    
+    % Call a julia function with the given (positional) arguments, returning its value.
+    %
+    % fn - the name of the function to call
+    function v = call(fn, varargin)
+      v = jl.callkw(nargin-1, fn, varargin{:});
+    end
+    
+    % Wraps a julia function which accepts some keyword arguments 
+    % in a matlab function handle
+    function hdl = wrapkw(npos, fn)
+        hdl = @(varargin) jl.callkw(npos, fn, varargin{:});
+    end
+    
+    % Wraps a julia function in a matlab function handle
+    function hdl = wrap(fn)
+        hdl = @(varargin) jl.call(fn, varargin{:});
+    end
+    
     % include a file in the Julia runtime
     function include(fn)
       jl.call('include', jl.forward_slashify(fn));
