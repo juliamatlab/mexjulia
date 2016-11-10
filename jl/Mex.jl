@@ -2,11 +2,22 @@ module Mex
 
 using MxArrays
 
-export jl_mex, call_matlab, redirect_output
+export jl_mex, call_matlab, redirect_output, is_interrupt_pending, check_for_interrupt
 
-# the libmex library
 const libmex = open_matlab_library("libmex")
 const _call_matlab_with_trap = Libdl.dlsym(libmex, :mexCallMATLABWithTrap)
+const libut = open_matlab_library("libut")
+const _is_interrupt_pending = Libdl.dlsym(libut, :utIsInterruptPending)
+
+# was Ctrl-C pressed in MATLAB?
+is_interrupt_pending() = ccall(_is_interrupt_pending, UInt8, ()) != 0
+
+# throw interrupt exception if Ctrl-C was pressed
+function check_for_interrupt()
+    if is_interrupt_pending()
+        throw(InterruptException())
+    end
+end
 
 # Call a matlab function specified by name
 # This version allows full control over data marshaling.
