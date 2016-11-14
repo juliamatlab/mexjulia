@@ -1,24 +1,6 @@
 #include <julia.h>
 #include <mex.h>
 
-void jl_check(bool bl)
-{
-    const size_t len = 1024;
-    static char msg[len];
-
-    if (!bl)
-    {
-        jl_value_t *e = jl_exception_occurred();
-        if(e)
-        {
-            snprintf(msg, len, "Unhandled Julia exception: %s", jl_typeof_str(e));
-            jl_exception_clear();
-            mexErrMsgTxt(msg);
-        }
-    }
-    jl_exception_clear();
-}
-
 void jl_atexit_hook_0()
 {
     jl_atexit_hook(0);
@@ -26,7 +8,6 @@ void jl_atexit_hook_0()
 
 void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
 {
-
     if (nr == 0) // initalization check
     {
         pl[0] = mxCreateLogicalScalar(jl_is_initialized() != 0);
@@ -49,9 +30,8 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
             args[1] = jl_apply_array_type(jl_voidpointer_type, 1);
             args[2] = (jl_value_t *)jl_ptr_to_array_1d(args[1], pl, nl > 1 ? nl : 1, 0);
             args[3] = (jl_value_t *)jl_ptr_to_array_1d(args[1], pr + 1, nr - 1, 0);
-            bool bl = jl_call2(fn, args[2], args[3]) != NULL;
+            jl_call2(fn, args[2], args[3]);
             JL_GC_POP();
-            jl_check(bl);
         }
         else // ...because the empty name means initialization
         {
@@ -67,16 +47,24 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
             }
         }
     }
-    else // evaluate remaining string arguments
+    else // evaluate the first remaining argument as a julia expression
     {
-        bool bl = true;
-        for (int i = 1; i < nr; ++i)
+        if (mxIsChar(pr[1]))
         {
-            if (!mxIsChar(pr[i])) continue;
-            char *expr = mxArrayToString(pr[i]);
-            bl &= jl_eval_string(expr) != NULL;
+            char *expr = mxArrayToString(pr[1]);
+            jl_eval_string(expr);
             mxFree(expr);
         }
-        jl_check(bl);
+    }
+
+    // check for unhandled julia exception
+    jl_value_t *e = jl_exception_occurred();
+    if(e)
+    {
+        const size_t len = 1024;
+        static char msg[len];
+        snprintf(msg, len, "Unhandled Julia exception: %s", jl_typeof_str(e));
+        jl_exception_clear();
+        mexErrMsgTxt(msg);
     }
 }

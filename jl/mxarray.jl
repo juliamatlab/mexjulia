@@ -644,7 +644,7 @@ function String(mx::MxArray)
     transcode(String, unsafe_wrap(Array, Ptr{mxChar}(data_ptr(mx)), ncols(mx), false))
 end
 
-function jdict(mx::MxArray)
+function Dict(mx::MxArray)
     if !(is_struct(mx) && nelems(mx) == 1)
         throw(ArgumentError("jdict only applies to a single struct."))
     end
@@ -656,7 +656,7 @@ function jdict(mx::MxArray)
         pv::Ptr{Void} = ccall(_mx_get_field_bynum,
             Ptr{Void}, (Ptr{Void}, mwIndex, Cint),
             mx.ptr, 0, i-1)
-        fx = MxArray(pv, false)
+        fx = MxArray(pv)
         fvals[i] = Any(fx)
     end
     Dict(zip(fnames, fvals))
@@ -684,11 +684,11 @@ function jvalue(mx::MxArray)
         ndims(mx) == 2 ? (ncols(mx) == 1 ? jvector(mx) : jmatrix(mx)) :
         jarray(mx)
     elseif is_struct(mx) && nelems(mx) == 1
-        jdict(mx)
+        Dict(mx)
     elseif classid(mx) == mxFUNCTION_CLASS && nelems(mx) == 1
         Function(mx)
     else
-        throw(ArgumentError("No known conversion to a Julia value."))
+        mx
     end
 end
 

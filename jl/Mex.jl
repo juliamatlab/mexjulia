@@ -4,24 +4,69 @@ using MxArrays
 
 export jl_mex, call_matlab, redirect_output, is_interrupt_pending, check_for_interrupt
 
+
+# *** ccall stuff ***
+
 const libmex = open_matlab_library("libmex")
 const _call_matlab_with_trap = Libdl.dlsym(libmex, :mexCallMATLABWithTrap)
 const libut = open_matlab_library("libut")
 const _is_interrupt_pending = Libdl.dlsym(libut, :utIsInterruptPending)
 
-# was Ctrl-C pressed in MATLAB?
+
+# *** interrupt handling ***
+
 is_interrupt_pending() = ccall(_is_interrupt_pending, UInt8, ()) != 0
 
-# throw interrupt exception if Ctrl-C was pressed
 function check_for_interrupt()
     if is_interrupt_pending()
         throw(InterruptException())
     end
 end
 
+
+# *** exception handling ***
+
+type MatlabException <: Exception
+    ptr::Ptr{Void}
+    MatlabException(ptr::Ptr{Void}) = new(ptr)
+end
+
+function MatlabException(id::String, msg::String)
+    mxid = "jl:"*replace(id, r"[^\w\s]", "_")
+    mx = call_matlab(1, "MException", MxArray[MxArray(mxid), MxArray(msg)])[1]
+    return MatlabException(mx.ptr)
+end
+
+function add_cause(mexn::MatlabException, cause::MatlabException)
+    args = MxArray[MxArray(x.ptr) for x in [mexn, cause]]
+    mx = call_matlab(1, "addCause", args)[1]
+    return MatlabException(mx.ptr)
+end
+
+function add_backtrace(exn, bt)
+    buf = IOBuffer()
+    showerror(buf, exn, bt)
+    seek(buf, 0)
+    msg = replace(readstring(buf), "\\", "\\\\")
+    return MatlabException(string(typeof(exn)), msg)
+end
+
+function add_backtrace(mexn::MatlabException, bt)
+    buf = IOBuffer()
+    print(buf, "Julia backtrace:")
+    Base.show_backtrace(buf, bt)
+    seek(buf, 0)
+    msg = replace(readstring(buf), "\\", "\\\\")
+    cause = MatlabException("backtrace", msg)
+    return add_cause(mexn, cause)
+end
+
+
+# *** calling into MATLAB ***
+
 # Call a matlab function specified by name
 # This version allows full control over data marshaling.
-function call_matlab(fn::String, args::Vector{MxArray}, nout::Integer = 1)
+function call_matlab(nout::Integer, fn::String, args::Vector{MxArray})
     ins = Ptr{Void}[arg.ptr for arg in args]
     nin = length(ins)
     outs = Vector{Ptr{Void}}(nout)
@@ -30,44 +75,83 @@ function call_matlab(fn::String, args::Vector{MxArray}, nout::Integer = 1)
         (Int32, Ptr{Ptr{Void}}, Int32, Ptr{Ptr{Void}}, Ptr{UInt8}),
         nout, outs, nin, ins, fn)
     if ptr != C_NULL
-        # pass MATLAB exception to Julia
-        msg = jstring(call_matlab("getReport", [MxArray(ptr), MxArray("basic")], 1)[1])
-        error(msg)
+        throw(MatlabException(ptr))
     end
 
-    MxArray[MxArray(o) for o in outs]
+    return MxArray[MxArray(o) for o in outs]
 end
 
 # This version uses default data marshaling.
-function call_matlab(fn, args...)
-    mxs = MxArray[MxArray(arg) for arg in args]
-    jvalue(call_matlab(fn, mxs, 1)[1])
+function call_matlab(nout, fn, args...)
+    mxin = MxArray[MxArray(arg) for arg in args]
+    return map(jvalue, call_matlab(nout, fn, mxin))
 end
 
 # Make MxArray callable. Works for strings or function handles.
 # This version allows full control over data marshaling.
-function (mx::MxArray)(args::Vector{MxArray}, nout::Integer = 1)
+function (mx::MxArray)(nout::Integer, args::Vector{MxArray})
     _args = MxArray[mx]
     append!(_args, args)
-    return call_matlab("feval", _args, nout)
+    return call_matlab(nout, "feval", _args)
 end
 
-# This version uses default data marshaling.
+# This version uses default data marshaling and assumes exactly one return value.
 function (mx::MxArray)(args...)
     mxs = MxArray[MxArray(arg) for arg in args]
-    jvalue(mx(mxs)[1])
+    return jvalue(mx(1, mxs)[1])
 end
 
-# Encode Julia error as string
-function error_string(e, bt)
-    buf = IOBuffer()
-    showerror(buf, e, bt)
-    seek(buf, 0)
-    readstring(buf)
+
+# *** stdout/stderr redirection
+
+function fwrite(fid, msg)
+    call_matlab(0, "fwrite", convert(Float64, fid), msg, "char")
+    return
 end
 
-# safe, convenient wrapper for mex-like Julia functions
+function readloop(stream, fid)
+    while isopen(stream)
+        fwrite(fid, readavailable(stream))
+    end
+end
+
+const mexstdout = redirect_stdout()[1]
+const mexstderr = redirect_stderr()[1]
+@schedule readloop(mexstdout, 1)
+@schedule readloop(mexstderr, 2)
+
+
+# the entry point for calling into julia from matlab
+global jl_mex_call_depth = 0
 function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
+    global jl_mex_call_depth += 1
+    try
+        if jl_mex_call_depth == 1
+            jl_mex_outer(outs, ins)
+        else
+            jl_mex_inner(outs, ins)
+        end
+    finally
+        jl_mex_call_depth -= 1
+    end
+end
+
+function jl_mex_outer(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
+    @sync begin
+        # do the desired computation
+        main_task = @async jl_mex_inner(outs, ins)
+
+        # check for interrupt
+        @async while(!istaskdone(main_task))
+            if is_interrupt_pending()
+                Base.throwto(main_task, InterruptException())
+            end
+            yield()
+        end
+    end
+end
+
+function jl_mex_inner(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     nouts = length(outs)
     none = MxArray(false)
     for ix in 1:nouts
@@ -85,69 +169,41 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
             outs[outix] = mx.ptr
             outix += 1
         end
-    catch e
-        msg = MxArray(error_string(e, catch_backtrace()))
-        outs[1] = msg.ptr
+    catch exn
+        # showerror(STDERR, exn, catch_backtrace())
+        outs[1] = add_backtrace(exn, catch_backtrace()).ptr
     end
-    flush(STDOUT)
-    flush(STDERR)
-    gc()
 end
 
 # evaluate Julia expressions
 jl_eval(exprs::Vector{MxArray}) = [eval(Main, parse(jvalue(e))) for e in exprs]
 
-# call a julia function, possibly with keyword arguments
-# the first value is an integer, n, representing the number of positional arguments
-# the second value represents a function to call
-# the next n arguments are assumed to be positional
-# all following arguments are assumed to be grouped in pairs, the first is the
-# name of the keyword argument, the second its value
+# Call a julia function, possibly with keyword arguments.
+#
+# The values in the args array are interpreted as follows:
+#      Index = Meaning
+# -----------------------------------------------------------
+#          1 = the function to call
+#          2 = an integer, npos, the number of positional arguments
+#   3:2+npos = positional arguments
+# 3+npos:end = keyword arguments, in keyword/value pairs
+#
+# If npos < 0, all arguments are assumed positional.
 function jl_call_kw(args::Vector{MxArray})
     vals = map(jvalue, args)
-    npos = vals[1]
-    expr = Expr(:call, parse(vals[2]))
+    nvals = length(vals)
+    expr = Expr(:call, parse(vals[1]))
+    npos = vals[2]
+    if npos < 0
+        npos = nvals - 2
+    end
     for ix in 3:(2+npos)
         push!(expr.args, vals[ix])
     end
-    for ix in (3+npos):2:length(vals)
+    for ix in (3+npos):2:nvals
         push!(expr.args, Expr(:kw, parse(vals[ix]), vals[ix+1]))
     end
-    [eval(Main, expr)]
-end
-
-
-# *** stuff for redirecting output
-
-function fwrite(fid, msg)
-    call_matlab("fwrite", convert(Float64, fid), msg, "char")
-end
-
-function readloop(fid, s)
-    try
-        while(isopen(s))
-            fwrite(fid, String(readavailable(s)))
-        end
-    catch e
-        fwrite(2, error_string(e, catch_backtrace()))
-    end
-end
-
-global mexstdout = nothing
-global mexstderr = nothing
-
-function redirect_output()
-    global mexstdout
-    global mexstderr
-
-    if mexstdout == nothing || !isopen(mexstdout)
-        mexstdout = redirect_stdout()[1]
-        @schedule readloop(1, mexstdout)
-    end
-    if mexstderr == nothing || !isopen(mexstderr)
-        mexstderr = redirect_stderr()[1]
-        @schedule readloop(2, mexstderr)
-    end
+    return [eval(Main, expr)]
 end
 
 end # module
