@@ -37,6 +37,16 @@ function MatlabException(id::String, msg::String)
     return MatlabException(mx.ptr)
 end
 
+MatlabException(mexn::MatlabException) = mexn
+
+function MatlabException(exn)
+    buf = IOBuffer()
+    showerror(buf, exn)
+    seek(buf, 0)
+    msg = replace(readstring(buf), "\\", "\\\\")
+    return MatlabException(string(typeof(exn)), msg)
+end
+
 function add_cause(mexn::MatlabException, cause::MatlabException)
     args = MxArray[MxArray(x.ptr) for x in [mexn, cause]]
     mx = call_matlab(1, "addCause", args)[1]
@@ -45,20 +55,12 @@ end
 
 function add_backtrace(exn, bt)
     buf = IOBuffer()
-    showerror(buf, exn, bt)
-    seek(buf, 0)
-    msg = replace(readstring(buf), "\\", "\\\\")
-    return MatlabException(string(typeof(exn)), msg)
-end
-
-function add_backtrace(mexn::MatlabException, bt)
-    buf = IOBuffer()
     print(buf, "Julia backtrace:")
     Base.show_backtrace(buf, bt)
     seek(buf, 0)
     msg = replace(readstring(buf), "\\", "\\\\")
     cause = MatlabException("backtrace", msg)
-    return add_cause(mexn, cause)
+    return add_cause(MatlabException(exn), cause)
 end
 
 
@@ -170,7 +172,6 @@ function jl_mex_inner(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
             outix += 1
         end
     catch exn
-        # showerror(STDERR, exn, catch_backtrace())
         outs[1] = add_backtrace(exn, catch_backtrace()).ptr
     end
 end
