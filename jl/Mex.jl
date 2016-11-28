@@ -112,8 +112,10 @@ function fwrite(fid, msg)
 end
 
 function readloop(stream, fid)
-    while isopen(stream)
-        fwrite(fid, readavailable(stream))
+    try
+        while isopen(stream)
+            fwrite(fid, readavailable(stream))
+        end
     end
 end
 
