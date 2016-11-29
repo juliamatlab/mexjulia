@@ -2,7 +2,7 @@ module Mex
 
 using MxArrays
 
-export jl_mex, call_matlab, redirect_output, is_interrupt_pending, check_for_interrupt
+export jl_mex, input, call_matlab, is_interrupt_pending, check_for_interrupt
 
 
 # *** ccall stuff ***
@@ -104,7 +104,7 @@ function (mx::MxArray)(args...)
 end
 
 
-# *** stdout/stderr redirection
+# *** stdout/stderr redirection ***
 
 function fwrite(fid, msg)
     call_matlab(0, "fwrite", convert(Float64, fid), msg, "char")
@@ -123,6 +123,11 @@ const mexstdout = redirect_stdout()[1]
 const mexstderr = redirect_stderr()[1]
 @schedule readloop(mexstdout, 1)
 @schedule readloop(mexstderr, 2)
+
+
+# *** stdin ***
+
+input(prompt::String="julia> ") = call_matlab(1, "input", prompt, "s")[1]
 
 
 # the entry point for calling into julia from matlab
