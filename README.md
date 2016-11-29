@@ -131,3 +131,7 @@ The first argument to `jl.mex` is the number of return values to expect. The sec
 
 See [`lmdif_test.m`](examples/lmdif_test.m), [`lm.m`](examples/lmdif.m), and [`lmdif.jl`](examples/lmdif.jl) for a more complex example that exposes [`Optim.jl`](https://github.com/JuliaOpt/Optim.jl)'s Levenberg-Marquardt solver to MATLAB. It presents an example of a MATLAB function handle being passed to Julia and used as a
 callback. (The default marshaling wraps matlab function handles in an anonymous function.)
+
+## Known Issues
+
+ - On Windows, if a julia is on the path it must be the one against which `mexjulia` is built.
