@@ -119,11 +119,11 @@ function readloop(stream, fid)
     end
 end
 
-const mexstdout = redirect_stdout()[1]
-const mexstderr = redirect_stderr()[1]
-@schedule readloop(mexstdout, 1)
-@schedule readloop(mexstderr, 2)
-
+# const mexstdout = redirect_stdout()[1]
+# const mexstderr = redirect_stderr()[1]
+# @schedule readloop(mexstdout, 1)
+# @schedule readloop(mexstderr, 2)
+#
 
 # *** stdin ***
 
@@ -136,7 +136,7 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     global jl_mex_call_depth += 1
     try
         if jl_mex_call_depth == 1
-            jl_mex_outer(outs, ins)
+            jl_mex_inner(outs, ins)
         else
             jl_mex_inner(outs, ins)
         end
@@ -168,17 +168,21 @@ function jl_mex_inner(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     end
     try
         args = [MxArray(arg) for arg in ins]
+        println(ins)
+        println(args)
         vals = eval(Main, parse(jvalue(args[1])))(args[2:end])
         outix = 2
         for val in vals
             if outix > nouts
                 break
             end
+            println(val)
             mx = MxArray(val)
             outs[outix] = mx.ptr
             outix += 1
         end
     catch exn
+        showerror(STDERR, exn, catch_backtrace())
         outs[1] = add_backtrace(exn, catch_backtrace()).ptr
     end
 end
