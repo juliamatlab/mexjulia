@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-`mexjulia` requires MATLAB (>=R2008a) and Julia (>=v.0.5) along with a C++ compiler configured to work with MATLAB's `mex` command, the last is required for building the `mexjulia` MEX function. You can check that a compiler is properly configured by executing:
+`mexjulia` requires MATLAB (tested with R2016b) and Julia (>=v.0.6-dev) along with a C++ compiler configured to work with MATLAB's `mex` command, the last is required for building the `mexjulia` MEX function. You can check that a compiler is properly configured by executing:
 
 ```
 >> mex -setup C++

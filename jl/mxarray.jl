@@ -153,55 +153,56 @@ const _mx_is_cell    = mxfunc(:mxIsCell)
 
 # getting simple attributes
 
-macro mxget_attr(fun, ret)
-    :( ccall($(fun)::Ptr{Void}, $(ret), (Ptr{Void},), mx.ptr) )
+macro mx_get(name, fun, ret, cnv)
+    :($(name)(mx::MxArray) = convert($(cnv), ccall($(fun)::Ptr{Void}, $(ret), (Ptr{Void},), mx.ptr)))
 end
-
-classid(mx::MxArray) = @mxget_attr(_mx_get_classid, mxClassID)
-nrows(mx::MxArray)   = convert(Int, @mxget_attr(_mx_get_m, UInt))
-ncols(mx::MxArray)   = convert(Int, @mxget_attr(_mx_get_n, UInt))
-nelems(mx::MxArray)  = convert(Int, @mxget_attr(_mx_get_nelems, UInt))
-ndims(mx::MxArray)   = convert(Int, @mxget_attr(_mx_get_ndims, mwSize))
+@mx_get(classid, _mx_get_classid, mxClassID, mxClassID)
+@mx_get(nrows, _mx_get_m, UInt, Int)
+@mx_get(ncols, _mx_get_n, UInt, Int)
+@mx_get(nelems, _mx_get_nelems, UInt, Int)
+@mx_get(ndims, _mx_get_ndims, mwSize, Int)
+@mx_get(elsize, _mx_get_elemsize, UInt, Int)
+@mx_get(nfields, _mx_get_nfields, Cint, Int)
 
 eltype(mx::MxArray)  = mxclassid_to_type(classid(mx))
-elsize(mx::MxArray)  = convert(Int, @mxget_attr(_mx_get_elemsize, UInt))
-data_ptr(mx::MxArray) = convert(Ptr{eltype(mx)}, @mxget_attr(_mx_get_data, Ptr{Void}))
-real_ptr(mx::MxArray) = convert(Ptr{eltype(mx)}, @mxget_attr(_mx_get_pr, Ptr{Void}))
-imag_ptr(mx::MxArray) = convert(Ptr{eltype(mx)}, @mxget_attr(_mx_get_pi, Ptr{Void}))
+macro mx_get_ptr(name, fun)
+    :($(name)(mx::MxArray) = convert(Ptr{eltype(mx)}, ccall($(fun)::Ptr{Void}, Ptr{Void}, (Ptr{Void},), mx.ptr)))
+end
+@mx_get_ptr(data_ptr, _mx_get_data)
+@mx_get_ptr(real_ptr, _mx_get_pr)
+@mx_get_ptr(imag_ptr, _mx_get_pi)
 
-nfields(mx::MxArray) = convert(Int, @mxget_attr(_mx_get_nfields, Cint))
 
 # validation functions
 
-macro mx_test_is(fun)
-    :( ccall($(fun)::Ptr{Void}, Bool, (Ptr{Void},), mx.ptr) )
+macro mx_pred(name, fun)
+    :($(name)(mx::MxArray) = ccall($(fun)::Ptr{Void}, Bool, (Ptr{Void},), mx.ptr))
 end
+@mx_pred(is_double, _mx_is_double)
+@mx_pred(is_single, _mx_is_single)
+@mx_pred(is_int64, _mx_is_int64)
+@mx_pred(is_uint64, _mx_is_uint64)
+@mx_pred(is_int32, _mx_is_int32)
+@mx_pred(is_uint32, _mx_is_uint32)
+@mx_pred(is_int16, _mx_is_int16)
+@mx_pred(is_uint16, _mx_is_uint16)
+@mx_pred(is_int8, _mx_is_int8)
+@mx_pred(is_uint8, _mx_is_uint8)
+@mx_pred(is_numeric, _mx_is_numeric)
+@mx_pred(is_logical, _mx_is_logical)
+@mx_pred(is_complex, _mx_is_complex)
+@mx_pred(is_sparse, _mx_is_sparse)
+@mx_pred(is_struct, _mx_is_struct)
+@mx_pred(is_cell, _mx_is_cell)
+@mx_pred(is_char, _mx_is_char)
+@mx_pred(is_empty, _mx_is_empty)
 
-is_double(mx::MxArray) = @mx_test_is(_mx_is_double)
-is_single(mx::MxArray) = @mx_test_is(_mx_is_single)
-is_int64(mx::MxArray)  = @mx_test_is(_mx_is_int64)
-is_uint64(mx::MxArray) = @mx_test_is(_mx_is_uint64)
-is_int32(mx::MxArray)  = @mx_test_is(_mx_is_int32)
-is_uint32(mx::MxArray) = @mx_test_is(_mx_is_uint32)
-is_int16(mx::MxArray)  = @mx_test_is(_mx_is_int16)
-is_uint16(mx::MxArray) = @mx_test_is(_mx_is_uint16)
-is_int8(mx::MxArray)   = @mx_test_is(_mx_is_int8)
-is_uint8(mx::MxArray)  = @mx_test_is(_mx_is_uint8)
-
-is_numeric(mx::MxArray) = @mx_test_is(_mx_is_numeric)
-is_logical(mx::MxArray) = @mx_test_is(_mx_is_logical)
-is_complex(mx::MxArray) = @mx_test_is(_mx_is_complex)
-is_sparse(mx::MxArray)  = @mx_test_is(_mx_is_sparse)
-is_struct(mx::MxArray)  = @mx_test_is(_mx_is_struct)
-is_cell(mx::MxArray)    = @mx_test_is(_mx_is_cell)
-is_char(mx::MxArray)    = @mx_test_is(_mx_is_char)
-is_empty(mx::MxArray)   = @mx_test_is(_mx_is_empty)
 
 # size function
 
 function size(mx::MxArray)
     nd = ndims(mx)
-    pdims::Ptr{mwSize} = @mxget_attr(_mx_get_dims, Ptr{mwSize})
+    pdims = ccall(_mx_get_dims, Ptr{mwSize}, (Ptr{Void},), mx.ptr)
     _dims = unsafe_wrap(Array, pdims, (nd,))
     dims = Array(Int, nd)
     for i = 1 : nd
@@ -220,7 +221,7 @@ function size(mx::MxArray, d::Integer)
         d == 1 ? nrows(mx) :
         d == 2 ? ncols(mx) : 1
     else
-        pdims::Ptr{mwSize} = @mxget_attr(_mx_get_dims, Ptr{mwSize})
+        pdims = ccall(_mx_get_dims, Ptr{mwSize}, (Ptr{Void},), mx.ptr)
         _dims = unsafe_wrap(Array, pdims, (nd,))
         d <= nd ? convert(Int, _dims[d]) : 1
     end

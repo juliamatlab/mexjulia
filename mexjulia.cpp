@@ -1,16 +1,32 @@
 #include <julia.h>
 #include <mex.h>
 
+#ifdef _OS_LINUX_
+#include <dlfcn.h>
+#endif
+
 void jl_atexit_hook_0()
 {
     jl_atexit_hook(0);
+}
+
+bool check_init()
+{
+    try
+    {
+        return jl_is_initialized() != 0;
+    }
+    catch (...)
+    {
+        return false;
+    }
 }
 
 void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
 {
     if (nr == 0) // initalization check
     {
-        pl[0] = mxCreateLogicalScalar(jl_is_initialized() != 0);
+        pl[0] = mxCreateLogicalScalar(check_init());
     }
     else if (mxIsChar(pr[0])) // call a function with this name...
     {
@@ -35,10 +51,19 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
         }
         else // ...because the empty name means initialization
         {
-            if (!jl_is_initialized())
+            if (!check_init())
             {
                 char *home = nr >= 2 && mxIsChar(pr[1]) ? mxArrayToString(pr[1]) : NULL;
                 char *image = nr >= 3 && mxIsChar(pr[2]) ? mxArrayToString(pr[2]) : NULL;
+                char *lib = nr >= 4 && mxIsChar(pr[3]) ? mxArrayToString(pr[3]) : NULL;
+
+#ifdef _OS_LINUX_
+                if (!dlopen(lib, RTLD_LAZY | RTLD_GLOBAL))
+                {
+                    mexErrMsgTxt(dlerror());
+                }
+#endif
+
                 jl_init_with_image(home, image);
                 mxFree(home);
                 mxFree(image);
