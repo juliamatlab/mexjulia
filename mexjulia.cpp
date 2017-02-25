@@ -43,7 +43,7 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
             jl_value_t **args;
             JL_GC_PUSHARGS(args, 4);
             args[0] = (jl_value_t *)fn;
-            args[1] = jl_apply_array_type(jl_voidpointer_type, 1);
+            args[1] = jl_apply_array_type(reinterpret_cast<jl_value_t *>(jl_voidpointer_type), 1);
             args[2] = (jl_value_t *)jl_ptr_to_array_1d(args[1], pl, nl > 1 ? nl : 1, 0);
             args[3] = (jl_value_t *)jl_ptr_to_array_1d(args[1], pr + 1, nr - 1, 0);
             jl_call2(fn, args[2], args[3]);
