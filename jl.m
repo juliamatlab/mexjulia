@@ -235,7 +235,8 @@ classdef jl
 
             % set ldlibs
             if ispc
-                ldlibs = [ 'lib' jl.get('lib_base') '.dll.a' ];
+                % get full path to .dll.a file
+                ldlibs = fullfile(jl.get('lib_dir'), [ 'lib' jl.get('lib_base') '.dll.a' ]);
             else
                 ldlibs = [ '-l' jl.get('lib_base') ' -ldl' ];
             end
