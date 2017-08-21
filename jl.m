@@ -229,7 +229,7 @@ classdef jl
             % set ldflags
             ldflags = ['-L"' jl.get('lib_dir') '"'];
             if ~ispc
-                ldflags = [ldflags ' -Wl,-rpath="' jl.get('lib_dir') '"'];
+                ldflags = [ldflags ' -Wl,-rpath "' jl.get('lib_dir') '"'];
             end
             jl.set('build_ldflags', ldflags);
 
@@ -283,6 +283,7 @@ classdef jl
             else
                 mex_ptrn = 'mex LDFLAGS=''%s $LDFLAGS'' -v -largeArrayDims -outdir "%s" %s %s %s';
             end
+            src = ['"' src '"'];
             mex_cmd = sprintf(mex_ptrn, ldflags, jl.this_dir, cflags, src, ldlibs);
             fprintf('The mex command to be executed:\n%s\n', mex_cmd);
             eval(mex_cmd);
