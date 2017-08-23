@@ -1,5 +1,6 @@
 *.mexw64
 *.mexa64
+*.mexmaci64
 *.o
 *.asv
 *.pdp
