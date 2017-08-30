@@ -7,3 +7,4 @@
 *.mexw64.pdb
 pathdef.m
 jldict.mat
+*DS_Store

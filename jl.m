@@ -20,7 +20,13 @@ classdef jl
                 if ~islogical(result)
                     throw(result);
                 end
-            catch
+            catch err
+                warning('Something went wrong')
+                disp(err.message)
+                disp('Stack trace follows:')
+                for i = 1:length(err.stack)
+                    disp(err.stack(i))
+                end
                 varargout{1} = [];
             end
         end
@@ -355,7 +361,6 @@ classdef jl
 
         function bf = boot_file()
             bf = jl.forward_slashify(fullfile(jl.this_dir, 'jl', 'boot.jl'));
-            disp(bf)
         end
 
         function home = julia_home()
