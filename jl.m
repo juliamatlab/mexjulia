@@ -13,11 +13,15 @@ classdef jl
         function varargout = mexn(nout, fn, varargin)
             jl.check_initialized;
             outputs = cell(nout+1, 1);
-            [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});
-            varargout = outputs(2:end);
-            result = outputs{1};
-            if ~islogical(result)
-                throw(result);
+            try
+                [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});
+                varargout = outputs(2:end);
+                result = outputs{1};
+                if ~islogical(result)
+                    throw(result);
+                end
+            catch
+                varargout{1} = [];
             end
         end
 
@@ -351,6 +355,7 @@ classdef jl
 
         function bf = boot_file()
             bf = jl.forward_slashify(fullfile(jl.this_dir, 'jl', 'boot.jl'));
+            disp(bf)
         end
 
         function home = julia_home()
