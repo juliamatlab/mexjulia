@@ -22,10 +22,13 @@ classdef jl
                 end
             catch err
                 warning('Something went wrong')
-                disp(err.message)
-                disp('Stack trace follows:')
+                warning(err.message)
+                warning('Stack trace follows:')
+                w = warning('query');
                 for i = 1:length(err.stack)
-                    disp(err.stack(i))
+                    if ~strcmp(w.state,'off')
+                        disp(err.stack(i))
+                    end
                 end
                 varargout{1} = [];
             end
