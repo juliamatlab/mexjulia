@@ -26,7 +26,7 @@ classdef jl
                 warning('Stack trace follows:')
                 w = warning('query');
                 for i = 1:length(err.stack)
-                    if ~strcmp(w.state,'off')
+                    if ~strcmp(w(1).state,'off')
                         disp(err.stack(i))
                     end
                 end
