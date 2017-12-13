@@ -2,6 +2,8 @@
 
 # `mexjulia`: embedding [Julia](http://julialang.org/) in the [MATLAB](http://www.mathworks.com/products/matlab/) process.
 
+Note: this project is effectively in hibernation as its author no longer has access to matlab.
+
 ## Prerequisites
 
 `mexjulia` requires MATLAB (tested with R2016b) and Julia (>=v.0.6-dev) along with a C++ compiler configured to work with MATLAB's `mex` command, the last is required for building the `mexjulia` MEX function. You can check that a compiler is properly configured by executing:
