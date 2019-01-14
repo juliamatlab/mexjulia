@@ -1,8 +1,10 @@
 *.mexw64
 *.mexa64
+*.mexmaci64
 *.o
 *.asv
 *.pdp
 *.mexw64.pdb
 pathdef.m
 jldict.mat
+*DS_Store

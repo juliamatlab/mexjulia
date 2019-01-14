@@ -13,11 +13,24 @@ classdef jl
         function varargout = mexn(nout, fn, varargin)
             jl.check_initialized;
             outputs = cell(nout+1, 1);
-            [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});
-            varargout = outputs(2:end);
-            result = outputs{1};
-            if ~islogical(result)
-                throw(result);
+            try
+                [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});
+                varargout = outputs(2:end);
+                result = outputs{1};
+                if ~islogical(result)
+                    throw(result);
+                end
+            catch err
+                warning('Something went wrong')
+                warning(err.message)
+                warning('Stack trace follows:')
+                w = warning('query');
+                for i = 1:length(err.stack)
+                    if ~strcmp(w(1).state,'off')
+                        disp(err.stack(i))
+                    end
+                end
+                varargout{1} = [];
             end
         end
 
@@ -229,7 +242,7 @@ classdef jl
             % set ldflags
             ldflags = ['-L"' jl.get('lib_dir') '"'];
             if ~ispc
-                ldflags = [ldflags ' -Wl,-rpath="' jl.get('lib_dir') '"'];
+                ldflags = [ldflags ' -Wl,-rpath "' jl.get('lib_dir') '"'];
             end
             jl.set('build_ldflags', ldflags);
 
@@ -283,6 +296,7 @@ classdef jl
             else
                 mex_ptrn = 'mex LDFLAGS=''%s $LDFLAGS'' -v -largeArrayDims -outdir "%s" %s %s %s';
             end
+            src = ['"' src '"'];
             mex_cmd = sprintf(mex_ptrn, ldflags, jl.this_dir, cflags, src, ldlibs);
             fprintf('The mex command to be executed:\n%s\n', mex_cmd);
             eval(mex_cmd);
