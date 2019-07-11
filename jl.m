@@ -189,7 +189,7 @@ classdef jl
             jl.set('julia_bin', exe);
 
             % get JULIA_HOME
-            jlhome = jl.eval_with_exe('unsafe_string(Base.JLOptions().julia_home)');
+            jlhome = jl.eval_with_exe('unsafe_string(Base.JLOptions().julia_bindir)');
             assert(exist(jlhome, 'dir') == 7);
             jl.set('julia_home', jlhome);
 
@@ -373,7 +373,7 @@ classdef jl
         function img = sys_image()
             img = jl.get('sys_image');
         end
-        
+
         function lib = lib_path()
             lib = jl.get('lib_path');
         end
@@ -400,7 +400,7 @@ classdef jl
                 save_ld_lib_path = getenv('LD_LIBRARY_PATH');
                 setenv LD_LIBRARY_PATH;
             end
-            [err, val] = system(sprintf('"%s" -e "println(%s)"', exe, expr));
+            [err, val] = system(sprintf('"%s" -e "using Libdl; println(%s)"', exe, expr));
             if ~ispc
                 % restore the LD_LIBRARY_PATH
                 setenv('LD_LIBRARY_PATH', save_ld_lib_path);
