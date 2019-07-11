@@ -267,7 +267,7 @@ mxempty() = MxArray(Float64, 0, 0)
 
 function _dims_to_mwSize(dims::Tuple{Vararg{Int}})
     ndim = length(dims)
-    _dims = Array(mwSize, ndim)
+    _dims = Array{mwSize}(undef, ndim)
     for i = 1 : ndim
         _dims[i] = convert(mwSize, dims[i])
     end
