@@ -1,5 +1,5 @@
-Base.load_juliarc()
+Base.load_julia_startup()
 include("MxArrays.jl")
-using MxArrays
+using .MxArrays
 include("Mex.jl")
-using Mex
+using .Mex

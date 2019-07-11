@@ -4,19 +4,19 @@
 function get_paths()
     global matlab_homepath = get(ENV, "MATLAB_HOME", "")
     if matlab_homepath == ""
-        if is_linux()
+        if Sys.islinux()
             matlab_homepath = dirname(dirname(realpath(chomp(readstring(`which matlab`)))))
-        elseif is_apple()
+        elseif Sys.isapple()
             apps = readdir("/Applications")
-            filter!(app -> ismatch(r"^MATLAB_R[0-9]+[ab]\.app$", app), apps)
+            filter!(app -> occursin(r"^MATLAB_R[0-9]+[ab]\.app$", app), apps)
             if ~isempty(apps)
                 matlab_homepath = joinpath("/Applications", maximum(apps))
             end
-        elseif is_windows()
+        elseif Sys.iswindows()
             default_dir = Int == Int32 ? "C:\\Program Files (x86)\\MATLAB" : "C:\\Program Files\\MATLAB"
             if isdir(default_dir)
                 dirs = readdir(default_dir)
-                filter!(dir -> ismatch(r"^R[0-9]+[ab]$", dir), dirs)
+                filter!(dir -> occursin(r"^R[0-9]+[ab]$", dir), dirs)
                 if ~isempty(dirs)
                     matlab_homepath = joinpath(default_dir, maximum(dirs))
                 end
@@ -30,11 +30,11 @@ function get_paths()
 
     # Get path to MATLAB libraries
     global matlab_library_path = nothing
-    if is_linux()
+    if Sys.islinux()
         matlab_library_path = joinpath(matlab_homepath, "bin", (Int == Int32 ? "glnx86" : "glnxa64"))
-    elseif is_apple()
+    elseif Sys.isapple()
         matlab_library_path = joinpath(matlab_homepath, "bin", (Int == Int32 ? "maci" : "maci64"))
-    elseif is_windows()
+    elseif Sys.iswindows()
         matlab_library_path = joinpath(matlab_homepath, "bin", (Int == Int32 ? "win32" : "win64"))
     end
 

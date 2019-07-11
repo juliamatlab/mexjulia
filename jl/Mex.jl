@@ -27,8 +27,8 @@ end
 # *** exception handling ***
 
 type MatlabException <: Exception
-    ptr::Ptr{Void}
-    MatlabException(ptr::Ptr{Void}) = new(ptr)
+    ptr::Ptr{Cvoid}
+    MatlabException(ptr::Ptr{Cvoid}) = new(ptr)
 end
 
 function MatlabException(id::String, msg::String)
@@ -69,12 +69,12 @@ end
 # Call a matlab function specified by name
 # This version allows full control over data marshaling.
 function call_matlab(nout::Integer, fn::String, args::Vector{MxArray})
-    ins = Ptr{Void}[arg.ptr for arg in args]
+    ins = Ptr{Cvoid}[arg.ptr for arg in args]
     nin = length(ins)
-    outs = Vector{Ptr{Void}}(nout)
+    outs = Vector{Ptr{Cvoid}}(nout)
 
-    ptr = ccall(_call_matlab_with_trap, Ptr{Void},
-        (Int32, Ptr{Ptr{Void}}, Int32, Ptr{Ptr{Void}}, Ptr{UInt8}),
+    ptr = ccall(_call_matlab_with_trap, Ptr{Cvoid},
+        (Int32, Ptr{Ptr{Cvoid}}, Int32, Ptr{Ptr{Cvoid}}, Ptr{UInt8}),
         nout, outs, nin, ins, fn)
     if ptr != C_NULL
         throw(MatlabException(ptr))
@@ -116,13 +116,14 @@ function readloop(stream, fid)
         while isopen(stream)
             fwrite(fid, readavailable(stream))
         end
+    finally
     end
 end
 
 const mexstdout = redirect_stdout()[1]
 const mexstderr = redirect_stderr()[1]
-@schedule readloop(mexstdout, 1)
-@schedule readloop(mexstderr, 2)
+@async readloop(mexstdout, 1)
+@async readloop(mexstderr, 2)
 
 
 # *** stdin ***
@@ -132,7 +133,7 @@ input(prompt::String="julia> ") = call_matlab(1, "input", prompt, "s")[1]
 
 # the entry point for calling into julia from matlab
 global jl_mex_call_depth = 0
-function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
+function jl_mex(outs::Vector{Ptr{Cvoid}}, ins::Vector{Ptr{Cvoid}})
     global jl_mex_call_depth += 1
     try
         if jl_mex_call_depth == 1
@@ -145,7 +146,7 @@ function jl_mex(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     end
 end
 
-function jl_mex_outer(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
+function jl_mex_outer(outs::Vector{Ptr{Cvoid}}, ins::Vector{Ptr{Cvoid}})
     @sync begin
         # do the desired computation
         main_task = @async jl_mex_inner(outs, ins)
@@ -160,7 +161,7 @@ function jl_mex_outer(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
     end
 end
 
-function jl_mex_inner(outs::Vector{Ptr{Void}}, ins::Vector{Ptr{Void}})
+function jl_mex_inner(outs::Vector{Ptr{Cvoid}}, ins::Vector{Ptr{Cvoid}})
     nouts = length(outs)
     none = MxArray(false)
     for ix in 1:nouts
