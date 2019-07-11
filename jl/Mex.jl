@@ -1,6 +1,7 @@
 module Mex
 
-using MxArrays
+include("MxArrays.jl")
+using .MxArrays, Libdl
 
 export jl_mex, input, call_matlab, is_interrupt_pending, check_for_interrupt
 
@@ -26,7 +27,7 @@ end
 
 # *** exception handling ***
 
-type MatlabException <: Exception
+mutable struct MatlabException <: Exception
     ptr::Ptr{Cvoid}
     MatlabException(ptr::Ptr{Cvoid}) = new(ptr)
 end
