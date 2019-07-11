@@ -1,5 +1,5 @@
 Base.load_julia_startup()
-include("MxArrays.jl")
+Base.include(Main, "MxArrays.jl")
 using .MxArrays
-include("Mex.jl")
+Base.include(Main, "Mex.jl")
 using .Mex

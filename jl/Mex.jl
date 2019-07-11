@@ -1,6 +1,6 @@
 module Mex
 
-include("MxArrays.jl")
+Base.include(Mex, "MxArrays.jl")
 using .MxArrays, Libdl
 
 export jl_mex, input, call_matlab, is_interrupt_pending, check_for_interrupt
@@ -33,7 +33,7 @@ mutable struct MatlabException <: Exception
 end
 
 function MatlabException(id::String, msg::String)
-    mxid = "jl:"*replace(id, r"[^\w\s]", "_")
+    mxid = "jl:"*replace(id, r"[^\w\s]"=>"_")
     mx = call_matlab(1, "MException", MxArray[MxArray(mxid), MxArray(msg)])[1]
     return MatlabException(mx.ptr)
 end
@@ -44,7 +44,7 @@ function MatlabException(exn)
     buf = IOBuffer()
     showerror(buf, exn)
     seek(buf, 0)
-    msg = replace(readstring(buf), "\\", "\\\\")
+    msg = replace(read(buf, String), "\\"=>"\\\\")
     return MatlabException(string(typeof(exn)), msg)
 end
 
@@ -59,7 +59,7 @@ function add_backtrace(exn, bt)
     print(buf, "Julia backtrace:")
     Base.show_backtrace(buf, bt)
     seek(buf, 0)
-    msg = replace(readstring(buf), "\\", "\\\\")
+    msg = replace(read(buf, String), "\\"=>"\\\\")
     cause = MatlabException("backtrace", msg)
     return add_cause(MatlabException(exn), cause)
 end
@@ -72,7 +72,7 @@ end
 function call_matlab(nout::Integer, fn::String, args::Vector{MxArray})
     ins = Ptr{Cvoid}[arg.ptr for arg in args]
     nin = length(ins)
-    outs = Vector{Ptr{Cvoid}}(nout)
+    outs = Vector{Ptr{Cvoid}}(undef, nout)
 
     ptr = ccall(_call_matlab_with_trap, Ptr{Cvoid},
         (Int32, Ptr{Ptr{Cvoid}}, Int32, Ptr{Ptr{Cvoid}}, Ptr{UInt8}),
@@ -123,9 +123,8 @@ end
 
 const mexstdout = redirect_stdout()[1]
 const mexstderr = redirect_stderr()[1]
-@async readloop(mexstdout, 1)
-@async readloop(mexstderr, 2)
-
+schedule(Task(()->readloop(mexstdout, 1)))
+schedule(Task(()->readloop(mexstderr, 2)))
 
 # *** stdin ***
 
@@ -170,7 +169,7 @@ function jl_mex_inner(outs::Vector{Ptr{Cvoid}}, ins::Vector{Ptr{Cvoid}})
     end
     try
         args = [MxArray(arg) for arg in ins]
-        vals = eval(Main, parse(jvalue(args[1])))(args[2:end])
+        vals = eval(Meta.parse(jvalue(args[1])))(args[2:end])
         outix = 2
         for val in vals
             if outix > nouts
@@ -186,7 +185,7 @@ function jl_mex_inner(outs::Vector{Ptr{Cvoid}}, ins::Vector{Ptr{Cvoid}})
 end
 
 # evaluate Julia expressions
-jl_eval(exprs::Vector{MxArray}) = [eval(Main, parse(jvalue(e))) for e in exprs]
+jl_eval(exprs::Vector{MxArray}) = [Core.eval(Main, Meta.parse(jvalue(e))) for e in exprs]
 
 # Call a julia function, possibly with keyword arguments.
 #
@@ -202,7 +201,7 @@ jl_eval(exprs::Vector{MxArray}) = [eval(Main, parse(jvalue(e))) for e in exprs]
 function jl_call_kw(args::Vector{MxArray})
     vals = map(jvalue, args)
     nvals = length(vals)
-    expr = Expr(:call, parse(vals[1]))
+    expr = Expr(:call, Meta.parse(vals[1]))
     npos = vals[2]
     if npos < 0
         npos = nvals - 2
@@ -211,9 +210,9 @@ function jl_call_kw(args::Vector{MxArray})
         push!(expr.args, vals[ix])
     end
     for ix in (3+npos):2:nvals
-        push!(expr.args, Expr(:kw, parse(vals[ix]), vals[ix+1]))
+        push!(expr.args, Expr(:kw, Meta.parse(vals[ix]), vals[ix+1]))
     end
-    return [eval(Main, expr)]
+    return [Core.eval(Main, expr)]
 end
 
 end # module

@@ -100,7 +100,7 @@ classdef jl
 
         % Include a file in the Julia runtime
         function include(fn)
-            jl.eval(sprintf('include("%s"); nothing', jl.forward_slashify(fn)));
+            jl.eval(sprintf('Base.include(Main, "%s"); nothing', jl.forward_slashify(fn)));
         end
 
         function repl(prompt, doneq)
@@ -153,7 +153,7 @@ classdef jl
                 setenv('MATLAB_HOME', jl.matlab_dir);
 
                 % load the boot file
-                mexjulia(0, ['include("' jl.boot_file '")']);
+                mexjulia(0, ['Base.include(Main, "' jl.boot_file '")']);
 
                 % restore the path
                 if ispc

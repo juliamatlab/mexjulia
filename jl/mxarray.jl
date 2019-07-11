@@ -433,7 +433,7 @@ MxArray(a::Array) = mxcellarray(a)
 
 function _fieldname_array(fieldnames::String...)
     n = length(fieldnames)
-    a = Array(Ptr{UInt8}, n)
+    a = Array{Ptr{UInt8}}(undef, n)
     for i = 1 : n
         a[i] = Base.unsafe_convert(Ptr{UInt8}, fieldnames[i])
     end
@@ -501,7 +501,7 @@ end
 
 function mxstruct(pairs::Pairs...)
     nf = length(pairs)
-    fieldnames = Array(String, nf)
+    fieldnames = Array{String}(undef, nf)
     for i = 1 : nf
         fn = pairs[i][1]
         fieldnames[i] = string(fn)
@@ -596,7 +596,7 @@ function jscalar(mx::MxArray)
     end
     @assert !is_sparse(mx)
     if is_complex(mx)
-        unsafe_wrap(Array, real_ptr(mx), (1,), false)[1] + im*unsafe_wrap(Array, imag_ptr(mx), (1,))[1]
+        unsafe_wrap(Array, real_ptr(mx), (1,), own=false)[1] + im*unsafe_wrap(Array, imag_ptr(mx), (1,))[1]
     else
         unsafe_wrap(Array, data_ptr(mx), (1,))[1]
     end
@@ -642,7 +642,7 @@ function String(mx::MxArray)
     if !(classid(mx) == mxCHAR_CLASS && ((ndims(mx) == 2 && nrows(mx) == 1) || is_empty(mx)))
         throw(ArgumentError("String only applies to char row vectors."))
     end
-    transcode(String, unsafe_wrap(Array, Ptr{mxChar}(data_ptr(mx)), ncols(mx), false))
+    transcode(String, unsafe_wrap(Array, Ptr{mxChar}(data_ptr(mx)), ncols(mx), own=false))
 end
 
 function Dict(mx::MxArray)
@@ -650,8 +650,8 @@ function Dict(mx::MxArray)
         throw(ArgumentError("jdict only applies to a single struct."))
     end
     nf = nfields(mx)
-    fnames = Array(String, nf)
-    fvals = Array(Any, nf)
+    fnames = Array{String}(undef, nf)
+    fvals = Array{Any}(undef, nf)
     for i = 1 : nf
         fnames[i] = get_fieldname(mx, i)
         pv::Ptr{Cvoid} = ccall(_mx_get_field_bynum,

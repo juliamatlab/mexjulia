@@ -24,6 +24,7 @@ bool check_init()
 
 void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
 {
+
     if (nr == 0) // initalization check
     {
         pl[0] = mxCreateLogicalScalar(check_init());
@@ -63,7 +64,6 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
                     mexErrMsgTxt(dlerror());
                 }
 #endif
-
                 jl_init_with_image(home, image);
                 mxFree(home);
                 mxFree(image);
@@ -83,8 +83,12 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
 
     // check for unhandled julia exception
     jl_value_t *e = jl_exception_occurred();
+    jl_value_t* sprint_fun = jl_get_function(jl_main_module, "sprint");
+    jl_value_t* showerror_fun = jl_get_function(jl_main_module, "showerror");
     if(e)
     {
+        const char* returned_exception = jl_string_ptr(jl_call2(sprint_fun, showerror_fun, e));
+        printf("ERROR: %s\n", returned_exception);
         const size_t len = 1024;
         static char msg[len];
         snprintf(msg, len, "Unhandled Julia exception: %s", jl_typeof_str(e));
