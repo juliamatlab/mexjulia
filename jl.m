@@ -13,24 +13,11 @@ classdef jl
         function varargout = mexn(nout, fn, varargin)
             jl.check_initialized;
             outputs = cell(nout+1, 1);
-            try
-                [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});
-                varargout = outputs(2:end);
-                result = outputs{1};
-                if ~islogical(result)
-                    throw(result);
-                end
-            catch err
-                warning('Something went wrong')
-                warning(err.message)
-                warning('Stack trace follows:')
-                w = warning('query');
-                for i = 1:length(err.stack)
-                    if ~strcmp(w(1).state,'off')
-                        disp(err.stack(i))
-                    end
-                end
-                varargout{1} = [];
+            [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});
+            varargout = outputs(2:end);
+            result = outputs{1};
+            if ~islogical(result)
+                throw(result);
             end
         end
 
