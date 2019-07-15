@@ -183,17 +183,17 @@ function jl_mex(plhs::Vector{Ptr{Cvoid}}, prhs::Vector{Ptr{Cvoid}})
 
     # TODO: manually turn stdout and stderr redirection on/off?
 
-    # get stdout and stderr before changing them
-    stdout = Base.stdout
-    stderr = Base.stderr
-
-    # redirect stdout and stderr to matlab terminal
-    mexstdout_rd, mexstdout_wr = redirect_stdout()
-    mexerrout_rd, mexerrout_wr = redirect_stderr()
-
-    # start printing stdout and stderr to matlab console
-    t1 = @async readloop(mexstdout_rd, 1)
-    t2 = @async readloop(mexstderr_rd, 2)
+    # # get stdout and stderr before changing them
+    # stdout = Base.stdout
+    # stderr = Base.stderr
+    #
+    # # redirect stdout and stderr to matlab terminal
+    # mexstdout_rd, mexstdout_wr = redirect_stdout()
+    # mexerrout_rd, mexerrout_wr = redirect_stderr()
+    #
+    # # start printing stdout and stderr to matlab console
+    # t1 = @async readloop(mexstdout_rd, 1)
+    # t2 = @async readloop(mexstderr_rd, 2)
 
     jl_mex_call_depth[] += 1
     try
@@ -208,13 +208,13 @@ function jl_mex(plhs::Vector{Ptr{Cvoid}}, prhs::Vector{Ptr{Cvoid}})
         jl_mex_call_depth[] -= 1
     end
 
-    # stop printing stdout and stderr to matlab console
-    @async Base.throwto(t1, InterruptException())
-    @async Base.throwto(t2, InterruptException())
-
-    # restore stdout and stderr
-    redirect_stdout(stdout)
-    redirect_stderr(stderr)
+    # # stop printing stdout and stderr to matlab console
+    # @async Base.throwto(t1, InterruptException())
+    # @async Base.throwto(t2, InterruptException())
+    #
+    # # restore stdout and stderr
+    # redirect_stdout(stdout)
+    # redirect_stderr(stderr)
 
     # TODO: when called from the MATLAB engine, Julia will overwrite the last line
     # of terminal output. fix this.
