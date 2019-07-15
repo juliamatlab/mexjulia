@@ -1,6 +1,8 @@
 # `Mex.jl`: embedding [Julia](http://julialang.org/) in the [MATLAB](http://www.mathworks.com/products/matlab/) process.
 
-This project is for Julia > 1.0.  For Julia 0.6, see the [mexjulia](https://github.com/twadleigh/mexjulia) project, which was the starting point for this projects development.
+NOTES:
+- This project is for Julia > 1.0.  For Julia 0.6 (and potentially below), see the [mexjulia](https://github.com/twadleigh/mexjulia) project, which was the starting point for this projects development.
+- I created this project mainly for my own purposes and am making it available as a courtesy to others seeking to embed Julia in MATLAB.  Therefore, I am not necessarily committed to maintaining it, but I will do my best to respond to posted issues.
 
 ## Prerequisites
 
@@ -129,6 +131,7 @@ The first argument to `jl.mexn` is the number of return values to expect. The se
 
 If only the first value is returned the jl.mex function may be used:
 
+```
 >> jl.mex('double_it', a)
 
 ans =
@@ -138,6 +141,7 @@ ans =
     1.6232    1.1003    0.9418    0.3414    0.8604
     1.0657    1.2450    0.4610    0.4553    0.3696
     0.7015    1.1741    1.6886    0.8714    1.8098
+```
 
 ## Known Issues
 
