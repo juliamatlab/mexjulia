@@ -1,6 +1,7 @@
-authors = ["Taylor McDonnell <taylor.golden.mcdonnell@gmail.com>"]
 name = "Mex"
 uuid = "5e29dd5e-a72c-11e9-2bb7-cd1b1701caa7"
+authors = ["Taylor McDonnell <taylor.golden.mcdonnell@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+MATLAB = "10e44e05-a98a-55b3-a45b-ba969058deb6"
