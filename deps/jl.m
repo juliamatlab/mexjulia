@@ -101,7 +101,11 @@ classdef jl
             while true
                 expr = input(prompt, 's');
                 if doneq(expr), break, end
-                jl.eval(expr)
+                if endsWith(expr,';');
+                    jl.eval(expr);
+                else
+                    jl.eval(expr)
+                end
             end
         end
 
