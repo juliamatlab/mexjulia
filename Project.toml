@@ -1,0 +1,6 @@
+authors = ["Taylor McDonnell <taylor.golden.mcdonnell@gmail.com>"]
+name = "Mex"
+uuid = "5e29dd5e-a72c-11e9-2bb7-cd1b1701caa7"
+version = "0.1.0"
+
+[deps]
