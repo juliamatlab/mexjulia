@@ -1,6 +1,6 @@
 # Mex.jl: embedding [Julia](http://julialang.org/) in the [MATLAB](http://www.mathworks.com/products/matlab/) process.
 
-NOTES:
+**NOTES:**
 - This project is for Julia > 1.0.  For Julia 0.6 (and potentially below), see the [mexjulia](https://github.com/twadleigh/mexjulia) project, which was the starting point for this projects development.
 - I created this project mainly for my own purposes and am making it available as a courtesy to others seeking to embed Julia in MATLAB.  Therefore, I am not necessarily committed to maintaining it, but I will do my best to respond to posted issues.
 
