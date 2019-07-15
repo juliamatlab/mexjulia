@@ -4,4 +4,6 @@ authors = ["Taylor McDonnell <taylor.golden.mcdonnell@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 MATLAB = "10e44e05-a98a-55b3-a45b-ba969058deb6"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
