@@ -11,14 +11,20 @@ classdef jl
         % `Vector{MxArray}` and returns a collection of values for which a
         % conversion to `MxArray` exists.
         function varargout = mexn(nout, fn, varargin)
+            % check if julia is initialized
             jl.check_initialized;
+
+            % call julia function
             outputs = cell(nout+1, 1);
             [outputs{:}] = mexjulia('jl_mex', fn, varargin{:});
-            varargout = outputs(2:end);
-            result = outputs{1};
-            if ~islogical(result)
-                throw(result);
+
+            % throw error if error occured
+            if ~islogical(outputs{1})
+                throw(outputs{1});
             end
+
+            % assign outputs
+            varargout = outputs(2:end);
         end
 
         % Like mexn but assumes exactly one output
