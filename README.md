@@ -57,13 +57,11 @@ c =
     0.5000
 ```
 
-Julia's `STDOUT` and `STDERR` are redirected to the MATLAB console:
+Note that Julia's `STDOUT` and `STDERR` are not redirected to the MATLAB console.  But if MATLAB is launched from the terminal they will appear there.
 
 ```
 >> jl.eval('println("Hello, world!")');
-Hello, world!
->> jl.eval('warn("Oh, no!")');
-WARNING: Oh, no!
+>> jl.eval('@warn("Oh, no!")');
 ```
 
 One can avoid the parentheses and string quotes using `jleval` (a simple wrapper around
