@@ -1,12 +1,12 @@
-![mexjulia.icon](doc/logo.png)
+# Mex.jl: embedding [Julia](http://julialang.org/) in the [MATLAB](http://www.mathworks.com/products/matlab/) process.
 
-# `mexjulia`: embedding [Julia](http://julialang.org/) in the [MATLAB](http://www.mathworks.com/products/matlab/) process.
-
-Note: this project is effectively in hibernation as its author no longer has access to matlab.
+**NOTES:**
+- This project is for Julia > 1.0.  For Julia 0.6 (and potentially below), see the [mexjulia](https://github.com/twadleigh/mexjulia) project, which was the starting point for this projects development.
+- I created this project mainly for my own purposes and am making my changes available as a courtesy to others seeking to embed Julia in MATLAB.  Therefore, I am not necessarily committed to maintaining it, but I will do my best to respond to posted issues.
 
 ## Prerequisites
 
-`mexjulia` requires MATLAB (tested with R2016b) and Julia (>=v.0.6-dev) along with a C++ compiler configured to work with MATLAB's `mex` command, the last is required for building the `mexjulia` MEX function. You can check that a compiler is properly configured by executing:
+`Mex.jl` requires MATLAB and Julia along with a C++ compiler configured to work with MATLAB's `mex` command, the last is required for building the `mexjulia` MEX function. You can check that a compiler is properly configured by executing:
 
 ```
 >> mex -setup C++
@@ -14,22 +14,19 @@ Note: this project is effectively in hibernation as its author no longer has acc
 
 from the MATLAB command prompt.
 
-## Configuration
+## Installation
 
-Start MATLAB and navigate to the `mexjulia` directory. Once there, run:
+First ensure that the [MATLAB.jl](https://github.com/JuliaInterop/MATLAB.jl) Julia package is properly installed.  This package makes use of the MxArrays type defined in that package and also uses it for this packages initial configuration step.
 
+Then simply add this package in Julia using the following command:
 ```
->> jl.config
+]add https://github.com/taylormcd/Mex.jl
 ```
 
-You will be prompted to select a `julia` executable. The build process will:
+The build process will:
  1. use `julia` to determine build options,
  1. build the `mexjulia` MEX function from source,
  1. add the `mexjulia` directory to your MATLAB path.
-
-Call `jl.config` any time you want to build against a different version of Julia. You can
-pass in the path to the desired Julia executable to build against if you don't want
-to be prompted to select one.
 
 ## Quick start
 
@@ -88,7 +85,7 @@ Hello, world!
 Use `jl.call` to call a Julia function specified by its name as a string:
 
 ```
->> jl.call('factorial', 10)
+>> jl.call('factorial', int64(10))
 
 ans =
 
@@ -107,7 +104,8 @@ Exercise more control over how data is marshaled between MATLAB and Julia by def
 a Julia function with a "MEX-like" signature and invoking it with `jl.mex`:
 
 ```
->> jleval double_it(args::Vector{MxArray}) = [2*jvalue(arg) for arg in args]
+>> jleval import MATLAB
+>> jleval double_it(args::Vector{MATLAB.MxArray}) = [2*MATLAB.jvalue(arg) for arg in args]
 >> a = rand(5,5)
 
 a =
@@ -118,7 +116,7 @@ a =
     0.5328    0.6225    0.2305    0.2277    0.1848
     0.3507    0.5870    0.8443    0.4357    0.9049
 
->> jl.mex(1, 'double_it', a)
+>> jl.mexn(1, 'double_it', a)
 
 ans =
 
@@ -129,10 +127,21 @@ ans =
     0.7015    1.1741    1.6886    0.8714    1.8098
 ```
 
-The first argument to `jl.mex` is the number of return values to expect. The second is the name of the function to be invoked. All remaining arguments are treated as function arguments. `jl.mex` expects the functions on which it is invoked to accept a single argument of type `Vector{MxArray}` and to return an iterable collection of values on which `mxarray` may be successfully invoked (_e.g._, a value of type `Vector{MxArray}`).
+The first argument to `jl.mexn` is the number of return values to expect. The second is the name of the function to be invoked. All remaining arguments are treated as function arguments. `jl.mexn` expects the functions on which it is invoked to accept a single argument of type `Vector{MATLAB.MxArray}` and to return an iterable collection of values on which `MATLAB.mxarray` may be successfully invoked (_e.g._, a value of type `Vector{MATLAB.MxArray}`).
 
-See [`lmdif_test.m`](examples/lmdif_test.m), [`lm.m`](examples/lmdif.m), and [`lmdif.jl`](examples/lmdif.jl) for a more complex example that exposes [`Optim.jl`](https://github.com/JuliaOpt/Optim.jl)'s Levenberg-Marquardt solver to MATLAB. It presents an example of a MATLAB function handle being passed to Julia and used as a
-callback. (The default marshaling wraps matlab function handles in an anonymous function.)
+If only the first value is returned the jl.mex function may be used:
+
+```
+>> jl.mex('double_it', a)
+
+ans =
+
+    1.2886    1.8780    0.4155    0.3895    0.6222
+    0.7572    1.7519    0.6025    0.4518    1.8468
+    1.6232    1.1003    0.9418    0.3414    0.8604
+    1.0657    1.2450    0.4610    0.4553    0.3696
+    0.7015    1.1741    1.6886    0.8714    1.8098
+```
 
 ## Known Issues
 
