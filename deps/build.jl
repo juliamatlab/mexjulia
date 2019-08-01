@@ -82,7 +82,8 @@ build_cflags = cflags()
 build_ldflags = ldflags()
 build_ldlibs = ldlibs()
 build_src = abspath("mexjulia.cpp")
-mex_cmd = "mex LDFLAGS=\'$(build_ldflags) \$LDFLAGS\' -v -largeArrayDims -outdir \"$(pwd())\" $(build_cflags) \"$(build_src)\" $(build_ldlibs)"
+outdir = joinpath(pwd(),"..","mexjulia")
+mex_cmd = "mex LDFLAGS=\'$(build_ldflags) \$LDFLAGS\' -v -largeArrayDims -outdir \"$outdir\" $(build_cflags) \"$(build_src)\" $(build_ldlibs)"
 
 # Save build parameters to .mat file
 mat"""
@@ -111,20 +112,23 @@ s1 = MSession()
 eval_string(s1, mex_cmd)
 close(s1)
 
-# add current directory to MATLAB path
+# move jldict.mat to mexjulia folder
+mv("jldict.mat", joinpath(outdir, "jldict.mat"), force=true)
+
+# add mexjulia directory to MATLAB path
 mat"""
 % check if current directory is on MATLAB path
 path_dirs = regexp(path, pathsep, 'split');
 if ispc
-    on_path = any(strcmpi($(pwd()), path_dirs));
+    on_path = any(strcmpi($outdir, path_dirs));
 else
-    on_path = any(strcmp($(pwd()), path_dirs));
+    on_path = any(strcmp($outdir, path_dirs));
 end
 
 % if not, add it and save
 if ~on_path
     fprintf('%s is not on the MATLAB path. Adding it and saving...\\n\', $(pwd()));
-    path($(pwd()), path);
+    path($outdir, path);
     savepath;
 end
 """
