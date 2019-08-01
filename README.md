@@ -20,7 +20,7 @@ First ensure that the [MATLAB.jl](https://github.com/JuliaInterop/MATLAB.jl) Jul
 
 Then simply add this package in Julia using the following command:
 ```
-]add https://github.com/taylormcd/Mex.jl
+]add https://github.com/byuflowlab/Mex.jl
 ```
 
 The build process will:
