@@ -151,7 +151,7 @@ classdef jl
                 setenv('MATLAB_HOME', jl.matlab_dir);
 
                 % load Mex.jl
-                mexjulia(0, ['Base.load_julia_startup(); using Mex; using MATLAB']);
+                mexjulia(0, ['Base.load_julia_startup(); using Mex; using MATLAB;']);
 
                 % restore the path
                 if ispc
