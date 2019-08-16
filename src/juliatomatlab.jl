@@ -25,4 +25,4 @@ call_matlab(nout::Integer, fn::String, args...) = MATLAB.jvalue.(call_matlab(nou
 
 # Make MxArray callable. Works for strings or function handles.
 (mx::MATLAB.MxArray)(nout::Integer, args::Vector{MATLAB.MxArray}) = call_matlab(nout, "feval", vcat(mx, args))
-(mx::MATLAB.MxArray)(args...) = jvalue(mx(1, MATLAB.mxarray.(args))[1])
+(mx::MATLAB.MxArray)(args...) = MATLAB.jvalue(mx(1, MATLAB.mxarray.(args))[1])
