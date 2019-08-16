@@ -150,7 +150,7 @@ classdef jl
                 % Make sure MATLAB_HOME points to _this_ version of matlab.
                 setenv('MATLAB_HOME', jl.matlab_dir);
 
-                % load Mex.jl
+                % load Mex.jl and MATLAB.jl
                 mexjulia(0, ['Base.load_julia_startup(); using Mex; using MATLAB;']);
 
                 % restore the path
