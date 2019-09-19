@@ -56,6 +56,7 @@ void mexFunction(int nl, mxArray* pl[], int nr, const mxArray* pr[])
                 char *home = nr >= 2 && mxIsChar(pr[1]) ? mxArrayToString(pr[1]) : NULL;
                 char *image = nr >= 3 && mxIsChar(pr[2]) ? mxArrayToString(pr[2]) : NULL;
                 char *lib = nr >= 4 && mxIsChar(pr[3]) ? mxArrayToString(pr[3]) : NULL;
+                jl_options.handle_signals = JL_OPTIONS_HANDLE_SIGNALS_OFF;
 
 #ifdef _OS_LINUX_
                 if (!dlopen(lib, RTLD_LAZY | RTLD_GLOBAL))
