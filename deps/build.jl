@@ -63,8 +63,8 @@ function ldlibs()
         return "-l$libname -ldl"
     else
         #return joinpath(libDir(), "lib$libname.dll.a")
-		julia_home = unsafe_string(Base.JLOptions().julia_bindir)
-		joinpath(splitdir(julia_home)[1], "lib", "lib$libname.dll.a")
+		aa = unsafe_string(Base.JLOptions().julia_bindir)
+		joinpath(splitdir(aa)[1], "lib", "lib$libname.dll.a")
     end
 end
 
