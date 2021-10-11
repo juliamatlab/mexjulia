@@ -107,7 +107,7 @@ classdef jl
             while true
                 expr = input(prompt, 's');
                 if doneq(expr), break, end
-                if endsWith(expr,';');
+                if endsWith(expr,';')
                     jl.eval(expr);
                 else
                     jl.eval(expr)
@@ -139,7 +139,9 @@ classdef jl
                     % find the julia dlls during initialization without requiring that
                     % julia be on the path.
                     old_dir = pwd;
-                    cd(jl.julia_home);
+                    % Load julia_home
+                    load("jldict.mat","julia_home");
+                    cd(julia_home);
                 end
 
                 % basic runtime initialization

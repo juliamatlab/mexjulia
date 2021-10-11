@@ -62,7 +62,9 @@ function ldlibs()
     if Sys.isunix()
         return "-l$libname -ldl"
     else
-        return joinpath(libDir(), "lib$libname.dll.a")
+		# Find libjulia.dll.a
+		julia_home = unsafe_string(Base.JLOptions().julia_bindir)
+		joinpath(splitdir(julia_home)[1], "lib", "lib$libname.dll.a")
     end
 end
 
@@ -76,7 +78,7 @@ julia_home = unsafe_string(Base.JLOptions().julia_bindir)
 sys_image = unsafe_string(Base.JLOptions().image_file)
 lib_base = is_debug ? "julia-debug" : "julia"
 lib_path = Libdl.dlpath("lib$lib_base")
-lib_dir = Sys.iswindows() ? joinpath(julia_home, "..", "lib") : splitdir(lib_path)[1]
+lib_dir = Sys.iswindows() ? joinpath(splitdir(julia_home)[1], "lib") : splitdir(lib_path)[1]
 inc_dir = includeDir()
 build_cflags = cflags()
 build_ldflags = ldflags()
