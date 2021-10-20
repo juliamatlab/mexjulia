@@ -22,9 +22,8 @@ function __init__()
     ut_is_interrupt_pending[] = Libdl.dlsym(libut[], :utIsInterruptPending)
 end
 
-include("exceptions.jl")
-include("juliatomatlab.jl")
-include("matlabtojulia.jl")
+# --- Patches --- #
+
 
 # Patch MATLAB.jl's handling of tuples
 function MATLAB.mxarray(t::Tuple)
@@ -72,5 +71,11 @@ function MATLAB.mxarray(a::Base.ReshapedArray{T}) where T<:MATLAB.MxComplexNum
     end
     return mx
 end
+
+# --- Content --- #
+
+include("exceptions.jl")
+include("juliatomatlab.jl")
+include("matlabtojulia.jl")
 
 end # module
