@@ -10,6 +10,8 @@ if isempty(loaded)
 end
 
 sln = jl.callkw('lmdif', 2, f, x0, 'show_trace', true);
+% or
+%sln = jl.mex('lmdif', 2, f, x0, true);
 
 if ~(sln.x_converged || sln.f_converged || sln.g_converged)
   throw('lmdif failed to converge');
