@@ -15,10 +15,10 @@ const libut = Ref{Ptr{Cvoid}}()
 const ut_is_interrupt_pending = Ref{Ptr{Cvoid}}()
 
 function __init__()
-    libmex[] = Libdl.dlopen(joinpath(MATLAB.matlab_libpath(), "libmex"), Libdl.RTLD_GLOBAL)
+    libmex[] = Libdl.dlopen(joinpath(MATLAB.matlab_libpath, "libmex"), Libdl.RTLD_GLOBAL)
     mex_call_matlab_with_trap[] = Libdl.dlsym(libmex[], :mexCallMATLABWithTrap)
 
-    libut[]  = Libdl.dlopen(joinpath(MATLAB.matlab_libpath(), "libut"), Libdl.RTLD_GLOBAL)
+    libut[]  = Libdl.dlopen(joinpath(MATLAB.matlab_libpath, "libut"), Libdl.RTLD_GLOBAL)
     ut_is_interrupt_pending[] = Libdl.dlsym(libut[], :utIsInterruptPending)
 end
 
