@@ -2,10 +2,9 @@ classdef jl
     %JL static class encapsulating MATLAB-side functionality for mexjulia
     % Call julia methods with jl.call and jl.call_kw, or call specially-designed
     % 'MEX-like' Julia methods with jl.mex.
-    % For maximum performance, make you own function wrapper that
-    % calls mexjulia directly (see 'performance' example)
     
     methods (Static)
+
         % Call a MEX-like Julia function. Note that for this call to work,
         % Julia must have already been initialized, either with jl.call(), or
         % manually with jl.init()
@@ -25,7 +24,6 @@ classdef jl
         
         % Interpret string(s) as Julia expression(s), returning value(s).
         function varargout = eval(varargin)
-            % check if julia is initialized
             jl.check_init();
             varargout = cell(nargin, 1);
             [varargout{:}] = jl.mex('Mex.jl_eval', varargin{:});
@@ -42,7 +40,6 @@ classdef jl
         %
         % If npos < 0 all arguments are assumed to be positional.
         function varargout = callkw(fn, npos, varargin)
-            % check if julia is initialized
             jl.check_init();
             if npos >= 0
                 nkw = length(varargin) - npos;
