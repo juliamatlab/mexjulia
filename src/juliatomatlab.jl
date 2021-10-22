@@ -1,10 +1,10 @@
 # --- Calling Into MATLAB from embedded Julia --- #
 
 # Call a matlab function specified by name
-function call_matlab(nout::Integer, fn::String, args::Vector{MATLAB.MxArray})
+function call_matlab(nout, fn, args::Vector{MATLAB.MxArray})
 
     # initialize outputs
-    outs = fill(C_NULL, nout)
+    outs = fill(C_NULL, Integer(nout))
 
     # call matlab
     ptr = ccall(mex_call_matlab_with_trap[], Ptr{Cvoid},
@@ -21,8 +21,8 @@ function call_matlab(nout::Integer, fn::String, args::Vector{MATLAB.MxArray})
 end
 
 # this version handles argument conversions to and from MATLAB
-call_matlab(nout::Integer, fn::String, args...) = MATLAB.jvalue.(call_matlab(nout, fn, MATLAB.mxarray.(collect(args))))
+call_matlab(nout, fn, args...) = MATLAB.jvalue.(call_matlab(nout, fn, MATLAB.mxarray.(collect(args))))
 
 # Make MxArray callable. Works for strings or function handles.
-(mx::MATLAB.MxArray)(nout::Integer, args::Vector{MATLAB.MxArray}) = call_matlab(nout, "feval", vcat(mx, args))
+(mx::MATLAB.MxArray)(nout, args::Vector{MATLAB.MxArray}) = call_matlab(nout, "feval", vcat(mx, args))
 (mx::MATLAB.MxArray)(args...) = MATLAB.jvalue(mx(1, MATLAB.mxarray.(args))[1])

@@ -117,4 +117,4 @@ function jl_call_kw(args::Vector{MATLAB.MxArray})
 end
 
 # used for mimicing a basic Julia repl from the MATLAB console
-input(prompt::String="julia> ") = call_matlab(1, "input", prompt, "s")[1]
+input(prompt="julia> ") = call_matlab(1, "input", prompt, "s")[1]
