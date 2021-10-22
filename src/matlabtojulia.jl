@@ -28,18 +28,26 @@ function jl_mex_inner(plhs::Vector{Ptr{Cvoid}}, prhs::Vector{Ptr{Cvoid}})
         # call Julia function
         out = fun(args)
 
-        out = (out isa Tuple ? out : (out,))::Tuple # wrap in tuple to simplify logic below
+        # determine whether results should be iterated over
+        iter = nlhs - 1 > 1
 
-        # convert output(s) to MxArray type
-        for i = 1:length(out)
-            # stop early if max number of outputs is reached
-            i > nlhs-1 && break
+        # transfer each output to MATLAB
+        if iter
+            for i = 1:nlhs-1
+                # create MATLAB array for output
+                mx = MATLAB.mxarray(out[i])
+                # transfer ownership to MATLAB
+                mx.own = false
+                # give pointer to MATLAB
+                plhs[1+i] = mx.ptr
+            end
+        else
             # create MATLAB array for output
-            mx = MATLAB.mxarray(out[i])
+            mx = MATLAB.mxarray(out)
             # transfer ownership to MATLAB
             mx.own = false
             # give pointer to MATLAB
-            plhs[1+i] = mx.ptr
+            plhs[2] = mx.ptr
         end
 
     catch exn
