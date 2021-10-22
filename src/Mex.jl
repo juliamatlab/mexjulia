@@ -24,7 +24,6 @@ end
 
 # --- Patches --- #
 
-
 # Patch MATLAB.jl's handling of tuples
 function MATLAB.mxarray(t::Tuple)
     pm = mxcellarray(length(t))
