@@ -4,31 +4,31 @@ function performance()
 % We use the divrem function, since it is very quick and shows how to
 % handle multiple arguments
 
-%% Simple method
-% Just use jl.call
-[a,b] = jl.call('divrem',7,3);
+%% jl.call
+% allow Julia to compile.
+[q,r] = jl.call('divrem',7,3);
 % time it:
-tic; for i=1:2000; [a,b] = jl.call('divrem',7,3); end; elpsd = toc;
+tic; for i=1:2000; [q,r] = jl.call('divrem',7,3); end; elpsd = toc;
 fprintf('jl.call: %3.0f us/call\n',elpsd*0.5e3);
 
-%% Custom Julia method
+%% jl.mex
 % Here we make a 'MEX-like' julia function
 jleval divrem_mex(args::Vector{MATLAB.MxArray}) = divrem(MATLAB.jscalar(args[1]),MATLAB.jscalar(args[2]));
-% and we use jl.mex
-[a,b] = jl.mex('divrem_mex',7,3);
+% allow Julia to compile.
+[q,r] = jl.mex('divrem_mex',7,3);
 % time it:
-tic; for i=1:2000; [a,b] = jl.mex('divrem_mex',7,3); end; elpsd = toc;
+tic; for i=1:2000; [q,r] = jl.mex('divrem_mex',7,3); end; elpsd = toc;
 fprintf('jl.mex:  %3.0f us/call\n',elpsd*0.5e3);
 
-%% Custom mexjulia wrapper
-% We make a special wrapper (see below) to call mexjulia directly. This
+%% mexjulia
+% We make a custom wrapper (see `divrem` below) to call mexjulia directly. This
 % method also requires the MEX-like Julia function we made earlier.
-[a,b] = divrem(7,3);
+[q,r] = divrem(7,3);
 % time it:
-tic; for i=1:2000; [a,b] = divrem(7,3); end; elpsd = toc;
+tic; for i=1:2000; [q,r] = divrem(7,3); end; elpsd = toc;
 fprintf('direct:  %3.0f us/call\n',elpsd*0.5e3);
 
-%% RAW
+%% mexjulia raw
 % For maximum performance. This requires dealing with the MEX pointer arrays
 jleval('using MATLAB: MxArray, jscalar, mxarray');
 jleval(sprintf('%s\n',...
@@ -38,18 +38,18 @@ jleval(sprintf('%s\n',...
     'nlhs > 0 && (mx = mxarray(out[1]); mx.own = false; plhs[1] = mx.ptr)',...
     'nlhs > 1 && (mx = mxarray(out[2]); mx.own = false; plhs[2] = mx.ptr)',...
     'end'));
-[a,b] = divrem_raw(7,3);
+[q,r] = divrem_raw(7,3);
 % time it:
-tic; for i=1:2000; [a,b] = divrem_raw(7,3); end; elpsd = toc;
+tic; for i=1:2000; [q,r] = divrem_raw(7,3); end; elpsd = toc;
 fprintf('raw:     %3.0f us/call\n',elpsd*0.5e3);
 end
 
 %% wrappers
-function [o1,o2] = divrem(a,b)
-[rv,o1,o2] = mexjulia('jl_mex', 'divrem_mex', a, b);
+function [q,r] = divrem(x,y)
+[rv,q,r] = mexjulia('jl_mex', 'divrem_mex', x, y);
 if ~islogical(rv); throw(rv); end
 end
 
-function [o1,o2] = divrem_raw(a,b)
-[o1,o2] = mexjulia('divrem_raw', a, b);
+function [q,r] = divrem_raw(x,y)
+[q,r] = mexjulia('divrem_raw', x, y);
 end
