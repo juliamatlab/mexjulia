@@ -45,7 +45,7 @@ ans =
 You can evaluate multiple expressions in a single call:
 
 ```
->> [s, c] = jl.eval('sin(pi/3)', 'cos(pi/3)')
+>> [s, c] = jl.eval('sin(pi/3), cos(pi/3)')
 
 s =
 
