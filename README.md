@@ -1,8 +1,8 @@
-# Mex.jl: embedding [Julia](http://julialang.org/) in the [MATLAB](http://www.mathworks.com/products/matlab/) process.
+# Mex.jl
 
-**NOTES:**
-- This project is for Julia > 1.0.  For Julia 0.6 (and potentially below), see the [mexjulia](https://github.com/twadleigh/mexjulia) project, which was the starting point for this projects development.
-- I created this project mainly for my own purposes and am making my changes available as a courtesy to others seeking to embed Julia in MATLAB.  Therefore, I am not necessarily committed to maintaining it, but I will do my best to respond to posted issues.
+*Embedding [Julia](http://julialang.org/) in the [MATLAB](http://www.mathworks.com/products/matlab/) process*
+
+**Mex.jl** embeds Julia into the MATLAB process using MATLAB's [C++ Mex interface](https://www.mathworks.com/help/matlab/cpp-mex-file-applications.html).  This allows Julia functions to be called from MATLAB.  This also allows (embedded) Julia to call MATLAB functions.  
 
 ## Prerequisites
 
@@ -90,8 +90,6 @@ ans =
      3628800
 ```
 
-`jl.call` marshals MATLAB data to/from Julia making certain default choices for doing so.
-
 Load new Julia code by calling `jl.include`:
 
 ```
@@ -114,22 +112,6 @@ a =
     0.5328    0.6225    0.2305    0.2277    0.1848
     0.3507    0.5870    0.8443    0.4357    0.9049
 
->> jl.mexn(1, 'double_it', a)
-
-ans =
-
-    1.2886    1.8780    0.4155    0.3895    0.6222
-    0.7572    1.7519    0.6025    0.4518    1.8468
-    1.6232    1.1003    0.9418    0.3414    0.8604
-    1.0657    1.2450    0.4610    0.4553    0.3696
-    0.7015    1.1741    1.6886    0.8714    1.8098
-```
-
-The first argument to `jl.mexn` is the number of return values to expect. The second is the name of the function to be invoked. All remaining arguments are treated as function arguments. `jl.mexn` expects the functions on which it is invoked to accept a single argument of type `Vector{MATLAB.MxArray}` and to return an iterable collection of values on which `MATLAB.mxarray` may be successfully invoked (_e.g._, a value of type `Vector{MATLAB.MxArray}`).
-
-If only the first value is returned the jl.mex function may be used:
-
-```
 >> jl.mex('double_it', a)
 
 ans =
@@ -141,6 +123,6 @@ ans =
     0.7015    1.1741    1.6886    0.8714    1.8098
 ```
 
-## Known Issues
+The first argument to `jl.mex` is the name of the function to be invoked. All remaining arguments are treated as function arguments. 
 
- - On Windows, if a julia is on the path it must be the one against which `mexjulia` is built.
+`jl.mex` expects the functions on which it is invoked to accept a single argument of type `Vector{MATLAB.MxArray}` and to return an iterable collection of values on which `MATLAB.mxarray` may be successfully invoked (_e.g._, a value of type `Vector{MATLAB.MxArray}`).
