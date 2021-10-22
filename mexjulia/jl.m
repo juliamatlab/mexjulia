@@ -15,20 +15,24 @@ classdef jl
         % `Vector{MxArray}` and returns a collection of values for which a
         % conversion to `MxArray` exists.
         function varargout = mex(fn, varargin)
-            if nargout == 0; nout = 1; else; nout = nargout; end
+            % check initialization
+            jl.check_init();
             % call julia function
-            [rv, varargout{1:nout}] = mexjulia('jl_mex', fn, varargin{:});
-            % throw if error occured
-            if ~islogical(rv); throw(rv); end
+            [err, varargout{1:nargout}] = mexjulia('jl_mex', fn, varargin{:});
+            % throw error if julia code failed
+            if ~islogical(err); throw(err); end
         end
         
         % Interpret string(s) as Julia expression(s), returning value(s).
         function varargout = eval(varargin)
+            % check initialization
             jl.check_init();
+            % initialize output
             varargout = cell(nargin, 1);
+            % evaluate julia code
             [varargout{:}] = jl.mex('Mex.jl_eval', varargin{:});
         end
-        
+
         % Call a Julia function, possibly with keyword arguments, returning its
         % value.
         %
