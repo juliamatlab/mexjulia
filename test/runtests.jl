@@ -40,3 +40,14 @@ end
     """
     @test result ≈ expected_result
 end
+
+@testset "call_matlab" begin
+    
+    mat"""
+    x = rand();
+    $y1 = sin(2);
+    $y2 = jl.call('Mex.call_matlab', nout, 'sin', 2);
+    """
+    @test y1 ≈ y2
+
+end
