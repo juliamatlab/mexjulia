@@ -15,22 +15,19 @@ classdef jl
         % `Vector{MxArray}` and returns a collection of values for which a
         % conversion to `MxArray` exists.
         function varargout = mex(fn, varargin)
+            % take at least one return value from mexjulia
+            nout = max(1, nargout);
             % check initialization
             jl.check_init();
             % call julia function
-            [err, varargout{1:nargout}] = mexjulia('jl_mex', fn, varargin{:});
+            [err, varargout{1:nout}] = mexjulia('jl_mex', fn, varargin{:});
             % throw error if julia code failed
             if ~islogical(err); throw(err); end
         end
         
         % Interpret string(s) as Julia expression(s), returning value(s).
-        function varargout = eval(varargin)
-            % check initialization
-            jl.check_init();
-            % initialize output
-            varargout = cell(nargin, 1);
-            % evaluate julia code
-            [varargout{:}] = jl.mex('Mex.jl_eval', varargin{:});
+        function varargout = eval(expr)
+            [varargout{1:nargout}] = jl.mex('Mex.jl_eval', expr);
         end
 
         % Call a Julia function, possibly with keyword arguments, returning its
@@ -44,7 +41,6 @@ classdef jl
         %
         % If npos < 0 all arguments are assumed to be positional.
         function varargout = callkw(fn, npos, varargin)
-            jl.check_init();
             if npos >= 0
                 nkw = length(varargin) - npos;
                 if nkw < 0

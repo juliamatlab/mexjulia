@@ -7,7 +7,7 @@ using MATLAB, Test
     @test result == 4
 
     mat"""
-        [$s, $c] = jl.eval('sin(pi/3)', 'cos(pi/3)')
+        [$s, $c] = jl.eval('sin(pi/3), cos(pi/3)')
     """
     @test s ≈ sin(pi/3)
     @test c ≈ cos(pi/3)

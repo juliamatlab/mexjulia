@@ -6,7 +6,7 @@ jl_mex(plhs::Vector{Ptr{Cvoid}}, prhs::Vector{Ptr{Cvoid}}) = jl_mex_inner(plhs, 
 # runs julia function with mex function inputs, catching errors if they occur
 function jl_mex_inner(plhs::Vector{Ptr{Cvoid}}, prhs::Vector{Ptr{Cvoid}})
 
-    # get number of outputs
+    # number of outputs
     nlhs = length(plhs)
 
     for i = 1:nlhs
@@ -18,6 +18,7 @@ function jl_mex_inner(plhs::Vector{Ptr{Cvoid}}, prhs::Vector{Ptr{Cvoid}})
         plhs[i] = none.ptr
     end
 
+    # try running julia code, while capturing exceptions
     try
 
         # extract function and arguments (function in first slot, arguments in remaining slots)
@@ -59,7 +60,9 @@ end
 # --- Functions Used by MATLAB when calling embedded Julia --- #
 
 # evaluates a Julia expressions
-jl_eval(exprs::Vector{MATLAB.MxArray}) = ntuple(i -> Core.eval(Main, Meta.parse(MATLAB.jstring(exprs[i]))), length(exprs))
+function jl_eval(exprs::Vector{MATLAB.MxArray})
+    return Core.eval(Main, Meta.parse(MATLAB.jstring(only(exprs))))
+end
 
 # Call a julia function, possibly with keyword arguments.
 #
