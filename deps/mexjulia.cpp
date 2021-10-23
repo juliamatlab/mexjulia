@@ -44,7 +44,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
   }
   else if (mxIsChar(prhs[0])) // call a Mex-like Julia function
   {
-    // extract function and arguments
+    // extract function
     char *fnName = mxArrayToString(prhs[0]);
     jl_function_t *fn = jl_get_function(jl_main_module, fnName);
     mxFree(fnName);
@@ -52,12 +52,15 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
     {
       mexErrMsgTxt("Function not found.");
     }
+    // extract arguments
     jl_value_t **args;
     JL_GC_PUSHARGS(args, 3);
     args[0] = jl_apply_array_type(reinterpret_cast<jl_value_t *>(jl_voidpointer_type), 1);
     args[1] = (jl_value_t *)jl_ptr_to_array_1d(args[0], plhs, nlhs > 1 ? nlhs : 1, 0);
     args[2] = (jl_value_t *)jl_ptr_to_array_1d(args[0], prhs + 1, nrhs - 1, 0);
+    // call function
     jl_call2(fn, args[1], args[2]);
+    // free memory
     JL_GC_POP();
   }
   else if (mxIsLogicalScalar(prhs[0]))
@@ -92,8 +95,6 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
       }
     }
   }
-
-
 
   // check for unhandled julia exception
   jl_value_t *e = jl_exception_occurred();
