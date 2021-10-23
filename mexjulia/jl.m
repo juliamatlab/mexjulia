@@ -82,7 +82,7 @@ classdef jl
         function include(fl)
             % check if julia is initialized
             jl.check_init();
-            mexjulia(int32(0), sprintf('Base.include(Main,"%s");',jl.forward_slashify(fl)));
+            mexjulia(true, sprintf('Base.include(Main,"%s");',jl.forward_slashify(fl)));
         end
         
         % Simple Julia REPL mode
@@ -129,14 +129,20 @@ classdef jl
                 cd(jldict.julia_home);
             end
             
-            % basic runtime initialization
-            mexjulia(int32(0), '', jldict.julia_home, jldict.sys_image, jldict.lib_path);
-            
             % make sure MATLAB_HOME points to _this_ version of MATLAB.
             setenv('MATLAB_HOME', jl.matlab_dir);
+
+            % basic runtime initialization
+            mexjulia(false, jldict.julia_home, jldict.sys_image, jldict.lib_path);
             
-            % load Mex.jl and MATLAB.jl
-            mexjulia(int32(0), 'Base.load_julia_startup(); using MATLAB, Mex;');
+            % load startup file
+            mexjulia(true, sprintf('%s\n', ...
+            'let startupfile = !isempty(DEPOT_PATH) ? abspath(DEPOT_PATH[1], "config", "startup_mexjulia.jl") : "" ',...
+            '    isfile(startupfile) && Base.JLOptions().startupfile != 2 && Base.include(Main, startupfile) ',...
+            'end '));
+
+            % load required packages
+            mexjulia(true, 'using MATLAB, Mex');
             
             % restore the path
             if ispc
