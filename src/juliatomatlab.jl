@@ -1,10 +1,10 @@
 # --- Calling Into MATLAB from embedded Julia --- #
 
 # Call a matlab function specified by name
-function call_matlab(nout, fn, args::Vector{MATLAB.MxArray})
+function call_matlab(nout::Integer, fn::String, args::Vector{MATLAB.MxArray})
 
     # initialize outputs
-    outs = fill(C_NULL, Integer(nout))
+    outs = fill(C_NULL, nout)
 
     # call matlab
     ptr = ccall(mex_call_matlab_with_trap[], Ptr{Cvoid},
